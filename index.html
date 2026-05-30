@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>営業部 業務時間ダッシュボード</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ===== ログイン画面 ===== -->
+<div id="login-screen" class="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-icon">📊</div>
+      <h1>営業部 業務時間ダッシュボード</h1>
+      <p>管理者専用システム</p>
+    </div>
+    <div class="login-form">
+      <div class="form-group">
+        <label>管理者パスワード</label>
+        <input type="password" id="login-password" placeholder="パスワードを入力" autocomplete="off">
+        <p class="form-hint">※ 初回は設定画面でパスワードを変更してください</p>
+      </div>
+      <div id="login-error" class="login-error" style="display:none">パスワードが違います</div>
+      <button class="btn-login" onclick="doLogin()">ログイン</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== メイン画面 ===== -->
+<div id="main-screen" class="main-screen" style="display:none">
+
+  <!-- サイドバー -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-icon">📊</div>
+      <span>業務管理</span>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+        <span class="nav-icon">🏠</span><span>ダッシュボード</span>
+      </button>
+      <button class="nav-item" data-tab="dept" onclick="switchTab('dept')">
+        <span class="nav-icon">📊</span><span>部門別分析</span>
+      </button>
+      <button class="nav-item" data-tab="personal" onclick="switchTab('personal')">
+        <span class="nav-icon">👤</span><span>個人別分析</span>
+      </button>
+      <button class="nav-item" data-tab="daily" onclick="switchTab('daily')">
+        <span class="nav-icon">📅</span><span>日別分析</span>
+      </button>
+      <button class="nav-item" data-tab="alert" onclick="switchTab('alert')">
+        <span class="nav-icon">⚠️</span><span>アラート</span>
+        <span class="badge" id="alert-badge" style="display:none">0</span>
+      </button>
+      <button class="nav-item" data-tab="csv" onclick="switchTab('csv')">
+        <span class="nav-icon">📁</span><span>CSV取込</span>
+      </button>
+      <button class="nav-item" data-tab="settings" onclick="switchTab('settings')">
+        <span class="nav-icon">⚙️</span><span>設定</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="doLogout()">🚪 ログアウト</button>
+    </div>
+  </aside>
+
+  <!-- メインコンテンツ -->
+  <main class="main-content">
+
+    <!-- ヘッダー -->
+    <header class="main-header">
+      <div class="header-left">
+        <h2 id="page-title">ダッシュボード</h2>
+        <span class="header-period" id="header-period">データ未読込</span>
+      </div>
+      <div class="header-right">
+        <span class="header-update" id="header-update"></span>
+        <div class="header-user">
+          <span class="header-user-icon">👤</span>
+          <div>
+            <div class="header-user-name">管理者</div>
+            <div class="header-user-role">システム管理者</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== ダッシュボードタブ ===== -->
+    <div id="tab-dashboard" class="tab-content active">
+
+      <!-- KPIカード -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-icon blue">🕐</div>
+          <div class="kpi-body">
+            <div class="kpi-label">総業務時間</div>
+            <div class="kpi-value" id="kpi-total">--</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon orange">⏰</div>
+          <div class="kpi-body">
+            <div class="kpi-label">時間外合計</div>
+            <div class="kpi-value" id="kpi-ot">--</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon teal">🏖️</div>
+          <div class="kpi-body">
+            <div class="kpi-label">休暇中業務</div>
+            <div class="kpi-value" id="kpi-vacation">--</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon yellow">☕</div>
+          <div class="kpi-body">
+            <div class="kpi-label">休憩不足人数</div>
+            <div class="kpi-value" id="kpi-break-short">--</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon green">👥</div>
+          <div class="kpi-body">
+            <div class="kpi-label">1人あたり平均</div>
+            <div class="kpi-value" id="kpi-avg">--</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon red">❗</div>
+          <div class="kpi-body">
+            <div class="kpi-label">要確認人数</div>
+            <div class="kpi-value" id="kpi-alert-count">--</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- グラフ行1 -->
+      <div class="chart-row">
+        <div class="chart-card chart-md">
+          <div class="chart-header">
+            <h3>業務区分別比率</h3>
+          </div>
+          <div class="chart-body">
+            <canvas id="chart-worktype"></canvas>
+          </div>
+        </div>
+        <div class="chart-card chart-lg">
+          <div class="chart-header">
+            <h3>個人別業務時間（時間）</h3>
+          </div>
+          <div class="chart-body">
+            <canvas id="chart-personal"></canvas>
+          </div>
+        </div>
+        <div class="chart-card chart-sm">
+          <div class="chart-header">
+            <h3>休憩取得状況（1日あたり）</h3>
+            <div class="chart-legend-sub" id="break-rule-label"></div>
+          </div>
+          <div class="break-status-grid" id="break-status-grid">
+            <div class="break-box ok">
+              <div class="break-label">✅ OK</div>
+              <div class="break-count" id="break-ok-count">--</div>
+              <div class="break-pct" id="break-ok-pct">--%</div>
+            </div>
+            <div class="break-box warn">
+              <div class="break-label">⚠️ 不足</div>
+              <div class="break-count" id="break-warn-count">--</div>
+              <div class="break-pct" id="break-warn-pct">--%</div>
+            </div>
+            <div class="break-box danger">
+              <div class="break-label">❗ 要確認</div>
+              <div class="break-count" id="break-danger-count">--</div>
+              <div class="break-pct" id="break-danger-pct">--%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- グラフ行2 -->
+      <div class="chart-row">
+        <div class="chart-card chart-md">
+          <div class="chart-header">
+            <h3>部門比較（今月累計）</h3>
+          </div>
+          <div class="dept-table-wrap">
+            <table class="dept-table" id="dept-compare-table">
+              <thead>
+                <tr>
+                  <th>項目</th>
+                  <th>営業部全体</th>
+                  <th>本社</th>
+                  <th>福岡支社</th>
+                </tr>
+              </thead>
+              <tbody id="dept-compare-body"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="chart-card chart-md">
+          <div class="chart-header">
+            <h3>⚠️ 注意アラート</h3>
+          </div>
+          <div class="alert-list" id="dashboard-alert-list"></div>
+        </div>
+        <div class="chart-card chart-lg">
+          <div class="chart-header">
+            <h3>時間外・休暇中業務一覧</h3>
+            <select class="chart-select" id="ot-list-filter" onchange="renderOtList()">
+              <option value="all">全員</option>
+            </select>
+          </div>
+          <div class="ot-table-wrap">
+            <table class="ot-table">
+              <thead>
+                <tr><th>氏名</th><th>日付</th><th>業務区分</th><th>時間外</th><th>休暇中業務</th><th>メモ</th></tr>
+              </thead>
+              <tbody id="ot-list-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- メンバー状況 -->
+      <div class="chart-card full-width">
+        <div class="chart-header">
+          <h3>メンバー状況（今月累計）</h3>
+        </div>
+        <div class="member-grid" id="member-grid"></div>
+      </div>
+
+    </div><!-- /tab-dashboard -->
+
+    <!-- ===== 部門別分析タブ ===== -->
+    <div id="tab-dept" class="tab-content">
+      <div class="chart-row">
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <h3>部門別 業務区分比率</h3>
+          </div>
+          <div class="chart-body chart-body-lg">
+            <canvas id="chart-dept-worktype"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card half-width">
+          <div class="chart-header"><h3>営業部本社 業務時間内訳</h3></div>
+          <div class="chart-body"><canvas id="chart-dept-honsha"></canvas></div>
+        </div>
+        <div class="chart-card half-width">
+          <div class="chart-header"><h3>営業部福岡支社 業務時間内訳</h3></div>
+          <div class="chart-body"><canvas id="chart-dept-fukuoka"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card full-width">
+          <div class="chart-header"><h3>部門別 時間外推移（日別）</h3></div>
+          <div class="chart-body chart-body-lg"><canvas id="chart-dept-ot-trend"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 個人別分析タブ ===== -->
+    <div id="tab-personal" class="tab-content">
+      <div class="filter-bar">
+        <label>部門：
+          <select id="personal-dept-filter" onchange="renderPersonalTab()">
+            <option value="all">全員</option>
+            <option value="営業部本社">営業部本社</option>
+            <option value="営業部福岡支社">営業部福岡支社</option>
+          </select>
+        </label>
+        <label>メンバー：
+          <select id="personal-member-filter" onchange="renderPersonalDetail()">
+            <option value="">-- 選択 --</option>
+          </select>
+        </label>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card full-width">
+          <div class="chart-header"><h3>個人別 業務時間比較</h3></div>
+          <div class="chart-body chart-body-lg"><canvas id="chart-personal-compare"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-row" id="personal-detail-row" style="display:none">
+        <div class="chart-card half-width">
+          <div class="chart-header"><h3 id="personal-detail-name">-- 業務区分内訳</h3></div>
+          <div class="chart-body"><canvas id="chart-personal-pie"></canvas></div>
+        </div>
+        <div class="chart-card half-width">
+          <div class="chart-header"><h3>日別業務時間推移</h3></div>
+          <div class="chart-body"><canvas id="chart-personal-daily"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 日別分析タブ ===== -->
+    <div id="tab-daily" class="tab-content">
+      <div class="chart-row">
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <h3>日別ヒートマップ（総業務時間）</h3>
+            <select class="chart-select" id="heatmap-dept-filter" onchange="renderHeatmap()">
+              <option value="all">全員</option>
+              <option value="営業部本社">営業部本社</option>
+              <option value="営業部福岡支社">営業部福岡支社</option>
+            </select>
+          </div>
+          <div id="heatmap-container" class="heatmap-container"></div>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card full-width">
+          <div class="chart-header"><h3>日別 業務時間推移（全員合計）</h3></div>
+          <div class="chart-body chart-body-lg"><canvas id="chart-daily-trend"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== アラートタブ ===== -->
+    <div id="tab-alert" class="tab-content">
+      <div class="alert-summary-grid" id="alert-summary-grid"></div>
+      <div class="chart-card full-width" style="margin-top:16px">
+        <div class="chart-header"><h3>アラート詳細一覧</h3></div>
+        <div class="alert-detail-list" id="alert-detail-list"></div>
+      </div>
+    </div>
+
+    <!-- ===== CSV取込タブ ===== -->
+    <div id="tab-csv" class="tab-content">
+      <div class="chart-card full-width">
+        <div class="chart-header"><h3>📁 CSVファイル取込</h3></div>
+        <div class="csv-upload-area" id="csv-drop-area">
+          <div class="csv-upload-icon">📂</div>
+          <p>CSVファイルをここにドロップ、または</p>
+          <label class="btn-upload">
+            ファイルを選択
+            <input type="file" id="csv-file-input" accept=".csv" multiple style="display:none" onchange="handleCSVFiles(this.files)">
+          </label>
+          <p class="csv-hint">複数ファイルを同時に選択できます（部員全員分）</p>
+        </div>
+        <div id="csv-status" class="csv-status"></div>
+      </div>
+      <div class="chart-card full-width" style="margin-top:16px">
+        <div class="chart-header">
+          <h3>取込済みデータ</h3>
+          <button class="btn-danger-sm" onclick="clearAllData()">🗑️ 全データ削除</button>
+        </div>
+        <div id="csv-data-summary" class="csv-data-summary"></div>
+      </div>
+    </div>
+
+    <!-- ===== 設定タブ ===== -->
+    <div id="tab-settings" class="tab-content">
+      <div class="settings-grid">
+
+        <div class="chart-card">
+          <div class="chart-header"><h3>⚠️ アラート閾値設定</h3></div>
+          <div class="settings-form">
+            <div class="setting-item">
+              <label>時間外アラート（月合計）</label>
+              <div class="setting-input-row">
+                <input type="number" id="set-ot-alert" min="0" max="999"> <span>時間以上で警告</span>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label>休暇中業務アラート（月合計）</label>
+              <div class="setting-input-row">
+                <input type="number" id="set-vacation-alert" min="0" max="999"> <span>時間以上で警告</span>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label>休憩不足アラート（1日あたり）</label>
+              <div class="setting-input-row">
+                <input type="number" id="set-break-ok" min="0" max="999"> <span>分以上でOK /</span>
+                <input type="number" id="set-break-warn" min="0" max="999"> <span>分以上で不足（0分で要確認）</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn-save" onclick="saveSettings()">💾 保存</button>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header"><h3>🔐 パスワード変更</h3></div>
+          <div class="settings-form">
+            <div class="setting-item">
+              <label>現在のパスワード</label>
+              <input type="password" id="set-pw-current" placeholder="現在のパスワード">
+            </div>
+            <div class="setting-item">
+              <label>新しいパスワード</label>
+              <input type="password" id="set-pw-new" placeholder="新しいパスワード">
+            </div>
+            <div class="setting-item">
+              <label>確認</label>
+              <input type="password" id="set-pw-confirm" placeholder="新しいパスワード（確認）">
+            </div>
+            <div id="pw-msg" style="font-size:0.85rem;margin-top:8px;"></div>
+          </div>
+          <button class="btn-save" onclick="changePassword()">🔐 変更</button>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div><!-- /main-screen -->
+
+<div id="toast" class="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
