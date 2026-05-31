@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>営業部 業務時間ダッシュボード</title>
-  <link rel="stylesheet" href="style.css?v=2.1">
+  <link rel="stylesheet" href="style.css?v=3.0">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -152,6 +152,7 @@
           <div class="kpi-body">
             <div class="kpi-label">総業務時間</div>
             <div class="kpi-value" id="kpi-total">--</div>
+            <div class="kpi-mom" id="kpi-total-mom"></div>
           </div>
         </div>
         <div class="kpi-card">
@@ -159,6 +160,7 @@
           <div class="kpi-body">
             <div class="kpi-label">時間外合計</div>
             <div class="kpi-value" id="kpi-ot">--</div>
+            <div class="kpi-mom" id="kpi-ot-mom"></div>
           </div>
         </div>
         <div class="kpi-card">
@@ -166,13 +168,15 @@
           <div class="kpi-body">
             <div class="kpi-label">休暇中業務</div>
             <div class="kpi-value" id="kpi-vacation">--</div>
+            <div class="kpi-mom" id="kpi-vacation-mom"></div>
           </div>
         </div>
         <div class="kpi-card">
           <div class="kpi-icon yellow">☕</div>
           <div class="kpi-body">
-            <div class="kpi-label">休憩不足人数</div>
-            <div class="kpi-value" id="kpi-break-short">--</div>
+            <div class="kpi-label">1日平均休憩時間</div>
+            <div class="kpi-value" id="kpi-break-avg">--</div>
+            <div class="kpi-mom" id="kpi-break-mom"></div>
           </div>
         </div>
         <div class="kpi-card">
@@ -180,13 +184,15 @@
           <div class="kpi-body">
             <div class="kpi-label">1人あたり平均</div>
             <div class="kpi-value" id="kpi-avg">--</div>
+            <div class="kpi-mom" id="kpi-avg-mom"></div>
           </div>
         </div>
         <div class="kpi-card">
           <div class="kpi-icon red">❗</div>
           <div class="kpi-body">
-            <div class="kpi-label">要確認人数</div>
+            <div class="kpi-label">重点確認人数</div>
             <div class="kpi-value" id="kpi-alert-count">--</div>
+            <div class="kpi-mom" id="kpi-alert-mom"></div>
           </div>
         </div>
       </div>
@@ -209,28 +215,44 @@
             <canvas id="chart-personal"></canvas>
           </div>
         </div>
-        <div class="chart-card chart-sm">
+        <!-- 業務負荷スコアアラートパネル -->
+        <div class="chart-card chart-sm" id="score-alert-panel">
           <div class="chart-header">
-            <h3>休憩取得状況（1日あたり）</h3>
-            <div class="chart-legend-sub" id="break-rule-label"></div>
+            <h3>業務負荷スコアアラート <span class="info-icon" title="業務負荷スコアに基づくリスクレベル判定">ℹ️</span></h3>
           </div>
-          <div class="break-status-grid" id="break-status-grid">
-            <div class="break-box ok">
-              <div class="break-label">✅ OK</div>
-              <div class="break-count" id="break-ok-count">--</div>
-              <div class="break-pct" id="break-ok-pct">--%</div>
+          <!-- 1日平均休憩時間 -->
+          <div class="score-alert-break-row">
+            <div class="score-alert-break-label">1日平均休憩時間</div>
+            <div class="score-alert-break-value" id="sa-break-avg">--</div>
+            <div class="score-alert-break-mom" id="sa-break-mom"></div>
+          </div>
+          <!-- リスクレベル3列 -->
+          <div class="score-level-row">
+            <div class="score-level-card lv4">
+              <div class="score-level-badge">Lv.4</div>
+              <div class="score-level-sublabel">重点確認</div>
+              <div class="score-level-count" id="sa-lv4-count">--</div>
+              <div class="score-level-unit">人</div>
             </div>
-            <div class="break-box warn">
-              <div class="break-label">⚠️ 不足</div>
-              <div class="break-count" id="break-warn-count">--</div>
-              <div class="break-pct" id="break-warn-pct">--%</div>
+            <div class="score-level-card lv3">
+              <div class="score-level-badge">Lv.3</div>
+              <div class="score-level-sublabel">要確認</div>
+              <div class="score-level-count" id="sa-lv3-count">--</div>
+              <div class="score-level-unit">人</div>
             </div>
-            <div class="break-box danger">
-              <div class="break-label">❗ 要確認</div>
-              <div class="break-count" id="break-danger-count">--</div>
-              <div class="break-pct" id="break-danger-pct">--%</div>
+            <div class="score-level-card lv2">
+              <div class="score-level-badge">Lv.2</div>
+              <div class="score-level-sublabel">注意</div>
+              <div class="score-level-count" id="sa-lv2-count">--</div>
+              <div class="score-level-unit">人</div>
             </div>
           </div>
+          <!-- ハイリスクTOP5 -->
+          <div class="score-top5-header">ハイリスクメンバー TOP5</div>
+          <table class="score-top5-table">
+            <thead><tr><th>順位</th><th>氏名</th><th>スコア</th><th>主な理由</th></tr></thead>
+            <tbody id="sa-top5-body"></tbody>
+          </table>
         </div>
       </div>
 
@@ -248,15 +270,17 @@
                   <th>営業部全体</th>
                   <th>本社</th>
                   <th>福岡支社</th>
+                  <th>九州支社</th>
                 </tr>
               </thead>
               <tbody id="dept-compare-body"></tbody>
             </table>
           </div>
         </div>
+        <!-- スコアアラート一覧 -->
         <div class="chart-card chart-md">
           <div class="chart-header">
-            <h3>⚠️ 注意アラート</h3>
+            <h3>スコアアラート一覧</h3>
           </div>
           <div class="alert-list" id="dashboard-alert-list"></div>
         </div>
@@ -264,7 +288,7 @@
           <div class="chart-header">
             <h3>時間外・休暇中業務一覧</h3>
             <select class="chart-select" id="ot-list-filter" onchange="renderOtList()">
-              <option value="all">全員</option>
+              <option value="all">すべてのメンバー</option>
             </select>
           </div>
           <div class="ot-table-wrap">
@@ -278,12 +302,22 @@
         </div>
       </div>
 
-      <!-- メンバー状況 -->
-      <div class="chart-card full-width">
-        <div class="chart-header">
-          <h3>メンバー状況（今月累計）</h3>
+      <!-- メンバー状況 + 算出要因 -->
+      <div class="chart-row member-bottom-row">
+        <div class="chart-card member-grid-card">
+          <div class="chart-header">
+            <h3>メンバー状況（今月累計）</h3>
+          </div>
+          <div class="member-grid" id="member-grid"></div>
         </div>
-        <div class="member-grid" id="member-grid"></div>
+        <!-- 業務負荷スコア算出要因 -->
+        <div class="chart-card score-factor-card">
+          <div class="chart-header">
+            <h3>業務負荷スコアの算出要因（重み）</h3>
+          </div>
+          <div class="score-factor-list" id="score-factor-list"></div>
+          <div class="score-factor-note">※合計スコアに応じてレベルを判定します</div>
+        </div>
       </div>
 
     </div><!-- /tab-dashboard -->
@@ -532,6 +566,6 @@
 
 <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=2.1"></script>
+  <script src="app.js?v=3.0"></script>
 </body>
 </html>

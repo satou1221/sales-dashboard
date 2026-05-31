@@ -367,11 +367,11 @@ function renderAll() {
   renderKPI();
   renderWorktypeChart();
   renderPersonalBarChart();
-  renderBreakStatus();
   renderDeptCompare();
   renderDashboardAlerts();
   renderOtList();
   renderMemberGrid();
+  renderScoreFactorList();
   renderCSVSummary();
   updateAlertBadge();
 }
@@ -393,31 +393,143 @@ function updateHeaderPeriod() {
 function renderKPI() {
   const s = loadSettings();
   const members = getMembers();
+
+  // 前月比表示用ヘルパー
+  function setMom(elId, val, prevVal, unit) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (prevVal == null) { el.textContent = ''; return; }
+    const diff = val - prevVal;
+    const pct = prevVal !== 0 ? Math.round(diff / prevVal * 1000) / 10 : 0;
+    const sign = diff >= 0 ? '+' : '';
+    const arrow = diff >= 0 ? '▲' : '▼';
+    const cls = diff > 0 ? 'mom-up' : diff < 0 ? 'mom-down' : 'mom-flat';
+    if (unit === 'min') {
+      const h = Math.floor(Math.abs(diff)/60), m = Math.abs(diff)%60;
+      const diffStr = h > 0 ? `${sign}${h}時間${m}分` : `${sign}${m}分`;
+      el.innerHTML = `<span class="${cls}">前月比 ${diffStr} ${arrow}</span>`;
+    } else {
+      el.innerHTML = `<span class="${cls}">前月比 ${sign}${pct}% ${arrow}</span>`;
+    }
+  }
+
   if (members.length === 0) {
-    ['kpi-total','kpi-ot','kpi-vacation','kpi-break-short','kpi-avg','kpi-alert-count'].forEach(id => {
-      document.getElementById(id).textContent = '--';
+    ['kpi-total','kpi-ot','kpi-vacation','kpi-break-avg','kpi-avg','kpi-alert-count'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '--';
+    });
+    ['kpi-total-mom','kpi-ot-mom','kpi-vacation-mom','kpi-break-mom','kpi-avg-mom','kpi-alert-mom'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '';
     });
     return;
   }
 
-  let totalMin = 0, otMin = 0, vacMin = 0;
-  let breakShort = 0, alertCount = 0;
+  let totalMin = 0, otMin = 0, vacMin = 0, breakMin = 0;
+  let alertCount = 0;
+  let totalBreakDays = 0;
   members.forEach(m => {
     const st = getMemberStats(m.empId);
-    totalMin += st.totalMin; otMin += st.otMin; vacMin += st.vacMin;
-    // 休憩不足（1日でも不足があれば）
-    const hasShort = Object.values(st.breakByDay).some(v => v < s.breakOk && v > 0);
-    if (hasShort) breakShort++;
-    // 要確認（時間外 or 休暇中業務アラート）
-    if (st.otMin >= s.otAlert * 60 || st.vacMin >= s.vacationAlert * 60) alertCount++;
+    totalMin += st.totalMin; otMin += st.otMin; vacMin += st.vacMin; breakMin += st.breakMin;
+    const days = Object.keys(st.breakByDay).length;
+    totalBreakDays += days;
+    // 重点確認（Lv.4）
+    const sc = calculateScores(m.empId);
+    if (sc.riskLevel >= 4) alertCount++;
   });
+
+  const avgBreakMin = totalBreakDays > 0 ? Math.round(breakMin / totalBreakDays) : 0;
+  const avgTotalMin = members.length > 0 ? Math.round(totalMin / members.length) : 0;
+
+  // 前月データ取得（LocalStorageに保存されていれば）
+  const prev = JSON.parse(localStorage.getItem('dash_prev_kpi') || 'null');
 
   document.getElementById('kpi-total').textContent       = fmtMin(totalMin);
   document.getElementById('kpi-ot').textContent          = fmtMin(otMin);
   document.getElementById('kpi-vacation').textContent    = fmtMin(vacMin);
-  document.getElementById('kpi-break-short').textContent = `${breakShort}人`;
-  document.getElementById('kpi-avg').textContent         = members.length > 0 ? fmtMin(Math.round(totalMin / members.length)) : '--';
+  const breakEl = document.getElementById('kpi-break-avg');
+  if (breakEl) breakEl.textContent = `${avgBreakMin}分`;
+  document.getElementById('kpi-avg').textContent         = fmtMin(avgTotalMin);
   document.getElementById('kpi-alert-count').textContent = `${alertCount}人`;
+
+  // 前月比表示
+  if (prev) {
+    setMom('kpi-total-mom', totalMin, prev.totalMin, 'pct');
+    setMom('kpi-ot-mom', otMin, prev.otMin, 'pct');
+    setMom('kpi-vacation-mom', vacMin, prev.vacMin, 'pct');
+    setMom('kpi-break-mom', avgBreakMin, prev.avgBreakMin, 'min');
+    setMom('kpi-avg-mom', avgTotalMin, prev.avgTotalMin, 'pct');
+    const alertEl = document.getElementById('kpi-alert-mom');
+    if (alertEl) {
+      const diff = alertCount - prev.alertCount;
+      const sign = diff >= 0 ? '+' : '';
+      const cls = diff > 0 ? 'mom-up' : diff < 0 ? 'mom-down' : 'mom-flat';
+      alertEl.innerHTML = `<span class="${cls}">前月比 ${sign}${diff}人</span>`;
+    }
+  }
+
+  // 業務負荷スコアアラートパネル更新
+  renderScoreAlertPanel(avgBreakMin, prev ? prev.avgBreakMin : null);
+}
+
+// 業務負荷スコアアラートパネル
+function renderScoreAlertPanel(avgBreakMin, prevBreakMin) {
+  const members = getMembers();
+  const scores = members.map(m => ({ ...m, ...calculateScores(m.empId) }));
+
+  const lv4 = scores.filter(s => s.riskLevel >= 4).length;
+  const lv3 = scores.filter(s => s.riskLevel === 3).length;
+  const lv2 = scores.filter(s => s.riskLevel === 2).length;
+
+  const saBreak = document.getElementById('sa-break-avg');
+  const saMom   = document.getElementById('sa-break-mom');
+  const saLv4   = document.getElementById('sa-lv4-count');
+  const saLv3   = document.getElementById('sa-lv3-count');
+  const saLv2   = document.getElementById('sa-lv2-count');
+  const saTop5  = document.getElementById('sa-top5-body');
+
+  if (saBreak) saBreak.textContent = `${avgBreakMin}分`;
+  if (saMom && prevBreakMin != null) {
+    const diff = avgBreakMin - prevBreakMin;
+    const sign = diff >= 0 ? '+' : '';
+    const cls = diff < 0 ? 'mom-down' : diff > 0 ? 'mom-up' : 'mom-flat';
+    const arrow = diff >= 0 ? '▲' : '▼';
+    saMom.innerHTML = `<span class="${cls}">前月比 ${sign}${diff}分 ${arrow}</span>`;
+  }
+  if (saLv4) saLv4.textContent = lv4;
+  if (saLv3) saLv3.textContent = lv3;
+  if (saLv2) saLv2.textContent = lv2;
+
+  // TOP5
+  if (saTop5) {
+    const sorted = [...scores].sort((a, b) => b.risk - a.risk).slice(0, 5);
+    const lvColor = { 4:'#e74c3c', 3:'#e67e22', 2:'#f1c40f', 1:'#2ecc71' };
+    saTop5.innerHTML = sorted.map((s, i) => {
+      const reason = buildRiskReason(s.empId);
+      return `<tr>
+        <td>${i+1}</td>
+        <td>${s.name}</td>
+        <td style="color:${lvColor[s.riskLevel]};font-weight:bold">${s.risk} <small>(Lv.${s.riskLevel})</small></td>
+        <td style="font-size:0.75rem;color:var(--text-sub)">${reason}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+// リスク理由文生成
+function buildRiskReason(empId) {
+  const s = loadSettings();
+  const st = getMemberStats(empId);
+  const reasons = [];
+  const vacDays = allRecords.filter(r => r.empId === empId && r.vacationMin > 0).length;
+  if (vacDays > 0) reasons.push(`休暇中業務あり ${vacDays}日`);
+  const zeroDays = Object.values(st.breakByDay).filter(v => v === 0).length;
+  if (zeroDays > 0) reasons.push(`休憩${zeroDays}分 ${zeroDays}日`);
+  const otDays = allRecords.filter(r => r.empId === empId && r.otMin >= 90).length;
+  if (otDays > 0) reasons.push(`時間外90分超 ${otDays}日`);
+  const shortDays = Object.values(st.breakByDay).filter(v => v > 0 && v < s.breakOk).length;
+  if (shortDays > 0) reasons.push(`休憩${s.breakOk}分以下 ${shortDays}日`);
+  return reasons.slice(0, 2).join('、') || 'なし';
 }
 
 // ============================================================
@@ -526,13 +638,15 @@ function renderDeptCompare() {
   const all     = getDeptStats('');
   const honsha  = getDeptStats('営業部本社');
   const fukuoka = getDeptStats('営業部福岡支社');
+  const kyushu  = getDeptStats('営業部九州支社');
 
   const rows = [
-    ['総業務時間',   fmtMin(all.totalMin),   fmtMin(honsha.totalMin),   fmtMin(fukuoka.totalMin)],
-    ['1人あたり平均', all.count>0?fmtMin(Math.round(all.totalMin/all.count)):'--', honsha.count>0?fmtMin(Math.round(honsha.totalMin/honsha.count)):'--', fukuoka.count>0?fmtMin(Math.round(fukuoka.totalMin/fukuoka.count)):'--'],
-    ['時間外',       fmtMin(all.otMin),      fmtMin(honsha.otMin),      fmtMin(fukuoka.otMin)],
-    ['休暇中業務',   fmtMin(all.vacMin),     fmtMin(honsha.vacMin),     fmtMin(fukuoka.vacMin)],
-    ['在籍人数',     `${all.count}人`,        `${honsha.count}人`,        `${fukuoka.count}人`],
+    ['総業務時間',         fmtMin(all.totalMin),   fmtMin(honsha.totalMin),   fmtMin(fukuoka.totalMin),   fmtMin(kyushu.totalMin)],
+    ['1人あたり平均',   all.count>0?fmtMin(Math.round(all.totalMin/all.count)):'--', honsha.count>0?fmtMin(Math.round(honsha.totalMin/honsha.count)):'--', fukuoka.count>0?fmtMin(Math.round(fukuoka.totalMin/fukuoka.count)):'--', kyushu.count>0?fmtMin(Math.round(kyushu.totalMin/kyushu.count)):'--'],
+    ['時間外合計',         fmtMin(all.otMin),      fmtMin(honsha.otMin),      fmtMin(fukuoka.otMin),      fmtMin(kyushu.otMin)],
+    ['休憩中業務時間合計', fmtMin(all.breakMin),   fmtMin(honsha.breakMin),   fmtMin(fukuoka.breakMin),   fmtMin(kyushu.breakMin)],
+    ['休暇中業務合計', fmtMin(all.vacMin),     fmtMin(honsha.vacMin),     fmtMin(fukuoka.vacMin),     fmtMin(kyushu.vacMin)],
+    ['在籍人数',         `${all.count}人`,        `${honsha.count}人`,        `${fukuoka.count}人`,        `${kyushu.count}人`],
   ];
 
   const tbody = document.getElementById('dept-compare-body');
@@ -558,27 +672,45 @@ function buildAlerts() {
 }
 
 function renderDashboardAlerts() {
-  const { otAlerts, vacAlerts, breakAlerts } = buildAlerts();
   const s = loadSettings();
+  const members = getMembers();
   const el = document.getElementById('dashboard-alert-list');
 
+  // 4種類のスコアアラート集計
+  const vacAlertMembers   = []; // 休暇中業務アラート
+  const breakZeroMembers  = []; // 休憩０分アラート
+  const otHeavyMembers    = []; // 時間外90分超アラート
+  const complexMembers    = []; // 複合条件アラート
+
+  members.forEach(m => {
+    const st = getMemberStats(m.empId);
+    const recs = allRecords.filter(r => r.empId === m.empId);
+    const hasVac    = recs.some(r => r.vacationMin > 0);
+    const hasZero   = Object.values(st.breakByDay).some(v => v === 0);
+    const hasOtHeavy = recs.some(r => r.otMin >= 90);
+    if (hasVac)     vacAlertMembers.push(m);
+    if (hasZero)    breakZeroMembers.push(m);
+    if (hasOtHeavy) otHeavyMembers.push(m);
+    // 複合条件：2種以上該当
+    const cnt = [hasVac, hasZero, hasOtHeavy].filter(Boolean).length;
+    if (cnt >= 2) complexMembers.push(m);
+  });
+
   const items = [
-    { icon:'⏰', title:`時間外アラート（${s.otAlert}時間超）`, list: otAlerts },
-    { icon:'🏖️', title:`休暇中業務アラート（${s.vacationAlert}時間超）`, list: vacAlerts },
-    { icon:'☕', title:'休憩不足アラート（0〜' + (s.breakWarn-1) + '分）', list: breakAlerts },
+    { icon:'🏖️', title:'休暇中業務アラート', desc:'休暇中に業務が発生', list: vacAlertMembers },
+    { icon:'☕', title:'休憩０分アラート', desc:'休憩０分の日がある', list: breakZeroMembers },
+    { icon:'⏰', title:'時間外90分超アラート', desc:'時間外が90分を超過', list: otHeavyMembers },
+    { icon:'⚠️', title:'複合条件アラート', desc:'複数条件が重複', list: complexMembers },
   ];
 
   el.innerHTML = items.map(item => {
-    const desc = item.list.length > 0
-      ? item.list.slice(0,2).map(m=>m.name).join('、') + (item.list.length > 2 ? ` 他${item.list.length-2}名` : '')
-      : 'なし';
     return `<div class="alert-item" onclick="switchTab('alert')">
       <div class="alert-item-icon">${item.icon}</div>
       <div class="alert-item-body">
         <div class="alert-item-title">${item.title}</div>
-        <div class="alert-item-desc">${desc}</div>
+        <div class="alert-item-desc">${item.desc}</div>
       </div>
-      <div class="alert-item-count">${item.list.length}人 ›</div>
+      <div class="alert-item-count alert-item-count-red">${item.list.length}人 ›</div>
     </div>`;
   }).join('');
 }
@@ -631,24 +763,76 @@ function renderMemberGrid() {
   const el = document.getElementById('member-grid');
   if (members.length === 0) { el.innerHTML = '<p style="color:var(--text-sub);padding:16px">データがありません</p>'; return; }
 
+  const lvColor = { 4:'#e74c3c', 3:'#e67e22', 2:'#f1c40f', 1:'#2ecc71' };
+  const lvLabel = { 4:'重点確認', 3:'要確認', 2:'注意', 1:'OK' };
+
   el.innerHTML = members.map(m => {
     const st = getMemberStats(m.empId);
+    const sc = calculateScores(m.empId);
     const hasOtAlert  = st.otMin  >= s.otAlert * 60;
     const hasVacAlert = st.vacMin >= s.vacationAlert * 60;
-    const hasBreakIssue = Object.values(st.breakByDay).some(v => v < s.breakWarn && v >= 0);
-    const statusClass = (hasOtAlert || hasVacAlert) ? 'status-danger' : hasBreakIssue ? 'status-warn' : 'status-ok';
-    const statusLabel = (hasOtAlert || hasVacAlert) ? '要確認' : hasBreakIssue ? '注意' : 'OK';
+    const reason = buildRiskReason(m.empId);
+    const lv = sc.riskLevel;
+    const color = lvColor[lv];
+    const label = lvLabel[lv];
 
     return `<div class="member-card">
-      <div class="member-card-name">${m.name}</div>
-      <div class="member-card-dept">${m.dept} / ${m.role||''}</div>
-      <div class="member-card-row"><span class="label">総業務</span><span class="value">${fmtMin(st.totalMin)}</span></div>
-      <div class="member-card-row"><span class="label">時間外</span><span class="value ${hasOtAlert?'red':''}">${fmtMin(st.otMin)}</span></div>
-      <div class="member-card-row"><span class="label">休憩</span><span class="value">${fmtMin(st.breakMin)}</span></div>
-      <div class="member-card-row"><span class="label">休暇中業務</span><span class="value ${hasVacAlert?'orange':''}">${fmtMin(st.vacMin)}</span></div>
-      <div class="member-card-status ${statusClass}">${statusLabel}</div>
+      <div class="member-card-header">
+        <div class="member-card-avatar">👤</div>
+        <div class="member-card-info">
+          <div class="member-card-name">${m.name}</div>
+          <div class="member-card-dept">${m.dept} / ${m.role||''}</div>
+        </div>
+        <div class="member-card-score-block">
+          <div class="member-card-score" style="color:${color}">${sc.risk}</div>
+          <div class="member-card-lv-badge" style="background:${color}">${label}<br><small>Lv.${lv}</small></div>
+        </div>
+      </div>
+      <div class="member-card-stats">
+        <div class="member-stat-item">
+          <div class="member-stat-icon">📊</div>
+          <div class="member-stat-label">総業務</div>
+          <div class="member-stat-value">${fmtMin(st.totalMin)}</div>
+        </div>
+        <div class="member-stat-item">
+          <div class="member-stat-icon">⏰</div>
+          <div class="member-stat-label">時間外</div>
+          <div class="member-stat-value ${hasOtAlert?'red':''}">${fmtMin(st.otMin)}</div>
+        </div>
+        <div class="member-stat-item">
+          <div class="member-stat-icon">☕</div>
+          <div class="member-stat-label">休憩中業務時間</div>
+          <div class="member-stat-value">${fmtMin(st.breakMin)}</div>
+        </div>
+        <div class="member-stat-item">
+          <div class="member-stat-icon">🏖️</div>
+          <div class="member-stat-label">休暇中業務</div>
+          <div class="member-stat-value ${hasVacAlert?'orange':''}">${fmtMin(st.vacMin)}</div>
+        </div>
+      </div>
+      <div class="member-card-reason">主な理由：${reason}</div>
     </div>`;
   }).join('');
+}
+
+// 業務負荷スコア算出要因リスト表示
+function renderScoreFactorList() {
+  const el = document.getElementById('score-factor-list');
+  if (!el) return;
+  const s = loadSettings();
+  const factors = [
+    { icon:'🏖️', label:'休暇中業務', weight:'40pt/件', cls:'factor-vac' },
+    { icon:'☕', label:'休憩０分（非常に重）', weight:'30pt/日', cls:'factor-break0' },
+    { icon:'⏰', label:'時間外90分以上（重）', weight:'20pt/日', cls:'factor-ot' },
+    { icon:'☕', label:`休憩${s.breakOk}分以下（中）`, weight:'10pt/日', cls:'factor-break-short' },
+    { icon:'⚠️', label:'複合条件（重複時）', weight:'+10～30pt', cls:'factor-complex' },
+  ];
+  el.innerHTML = factors.map(f => `
+    <div class="score-factor-item ${f.cls}">
+      <span class="score-factor-icon">${f.icon}</span>
+      <span class="score-factor-label">${f.label}</span>
+      <span class="score-factor-weight">${f.weight}</span>
+    </div>`).join('');
 }
 
 // ============================================================
@@ -671,6 +855,7 @@ function renderCSVSummary() {
 
 // ============================================================
 // スコアリング計算ロジック
+// 画像仕様に合わせて改修
 // ============================================================
 function calculateScores(empId) {
   const s = loadSettings();
@@ -683,38 +868,54 @@ function calculateScores(empId) {
   if (totalWorkMin > 0) {
     Object.entries(st.byType).forEach(([type, min]) => {
       const master = s.workMaster.find(m => m.name === type);
-      if (master) {
+      if (master && master.importance > 0) {
         contributionScore += (min / totalWorkMin) * master.importance;
       }
     });
   }
 
-  // 2. 負荷リスクスコア
+  // 2. 業務負荷スコア（画像仕様）
+  // - 休暇中業務: 40pt/件
+  // - 休憩０分（非常に重）: 30pt/日
+  // - 時間外90分以上（重）: 20pt/日
+  // - 休憩設定分以下（中）: 10pt/日
+  // - 複合条件（重複時）: +10〜30pt
   let riskScore = 0;
-  riskScore += (st.otMin / 60) * s.riskWeights.ot;
-  riskScore += (st.vacMin / 60) * s.riskWeights.vacation;
-  
-  const breakIssues = Object.values(st.breakByDay).filter(v => v < s.breakWarn && v >= 0).length;
-  riskScore += breakIssues * s.riskWeights.break;
 
-  let lateMin = 0;
-  recs.forEach(r => {
-    if (!r.startTime || !r.endTime) return;
-    const endH = parseInt(r.endTime.split(':')[0]);
-    const startH = parseInt(r.startTime.split(':')[0]);
-    if (endH >= 22) lateMin += (endH - 22) * 60 + parseInt(r.endTime.split(':')[1]);
-    if (startH < 5) lateMin += (5 - startH) * 60 - parseInt(r.startTime.split(':')[1]);
-  });
-  riskScore += (lateMin / 60) * s.riskWeights.late;
+  // 休暇中業務件数
+  const vacDays = recs.filter(r => r.vacationMin > 0).length;
+  riskScore += vacDays * 40;
 
+  // 休憩０分の日数
+  const zeroDays = Object.values(st.breakByDay).filter(v => v === 0).length;
+  riskScore += zeroDays * 30;
+
+  // 時間外90分以上の日数
+  const otHeavyDays = recs.filter(r => r.otMin >= 90).length;
+  riskScore += otHeavyDays * 20;
+
+  // 休憩不足（設定分以下、０分超）の日数
+  const shortDays = Object.values(st.breakByDay).filter(v => v > 0 && v < s.breakOk).length;
+  riskScore += shortDays * 10;
+
+  // 複合条件（休暇中業務 + 休憩０分 or 時間外重複）
+  const complexDays = recs.filter(r => {
+    const hasVac = r.vacationMin > 0;
+    const hasZero = st.breakByDay[r.date] === 0;
+    const hasOtHeavy = r.otMin >= 90;
+    return [hasVac, hasZero, hasOtHeavy].filter(Boolean).length >= 2;
+  }).length;
+  if (complexDays > 0) riskScore += Math.min(complexDays * 15, 30);
+
+  // リスクレベル判定（スコアに応じて）
   let riskLevel = 1;
-  if (riskScore >= 15) riskLevel = 4;
-  else if (riskScore >= 10) riskLevel = 3;
-  else if (riskScore >= 5) riskLevel = 2;
+  if (riskScore >= 80) riskLevel = 4;
+  else if (riskScore >= 40) riskLevel = 3;
+  else if (riskScore >= 15) riskLevel = 2;
 
   return { 
     contribution: Math.round(contributionScore * 10) / 10, 
-    risk: Math.round(riskScore * 10) / 10,
+    risk: riskScore,
     riskLevel
   };
 }

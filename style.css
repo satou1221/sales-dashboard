@@ -232,3 +232,78 @@ body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Go
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:var(--bg2); }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+/* ===== v3.0 前月比表示 ===== */
+.kpi-mom { font-size:0.72rem; margin-top:3px; }
+.kpi-mom .mom-up   { color: var(--red); }
+.kpi-mom .mom-down { color: var(--green); }
+.kpi-mom .mom-flat { color: var(--text-sub); }
+
+/* ===== v3.0 業務負荷スコアアラートパネル ===== */
+#score-alert-panel { display:flex; flex-direction:column; gap:10px; }
+.score-alert-break-row { background:var(--bg3); border-radius:8px; padding:10px 14px; }
+.score-alert-break-label { font-size:0.75rem; color:var(--text-sub); margin-bottom:2px; }
+.score-alert-break-value { font-size:1.5rem; font-weight:700; color:var(--text); }
+.score-alert-break-mom { font-size:0.72rem; }
+.score-alert-break-mom .mom-up   { color: var(--red); }
+.score-alert-break-mom .mom-down { color: var(--green); }
+.score-level-row { display:flex; gap:8px; }
+.score-level-card { flex:1; border-radius:8px; padding:10px 8px; text-align:center; }
+.score-level-card.lv4 { background:rgba(231,76,60,0.15); border:1px solid rgba(231,76,60,0.4); }
+.score-level-card.lv3 { background:rgba(230,126,34,0.15); border:1px solid rgba(230,126,34,0.4); }
+.score-level-card.lv2 { background:rgba(241,196,15,0.15); border:1px solid rgba(241,196,15,0.4); }
+.score-level-badge { font-size:0.72rem; font-weight:700; margin-bottom:2px; }
+.score-level-card.lv4 .score-level-badge { color:#e74c3c; }
+.score-level-card.lv3 .score-level-badge { color:#e67e22; }
+.score-level-card.lv2 .score-level-badge { color:#f1c40f; }
+.score-level-sublabel { font-size:0.68rem; color:var(--text-sub); margin-bottom:4px; }
+.score-level-count { font-size:1.8rem; font-weight:800; line-height:1; }
+.score-level-card.lv4 .score-level-count { color:#e74c3c; }
+.score-level-card.lv3 .score-level-count { color:#e67e22; }
+.score-level-card.lv2 .score-level-count { color:#f1c40f; }
+.score-level-unit { font-size:0.75rem; color:var(--text-sub); }
+.score-top5-header { font-size:0.8rem; font-weight:700; color:var(--text-sub); margin-top:4px; padding-bottom:4px; border-bottom:1px solid var(--border); }
+.score-top5-table { width:100%; border-collapse:collapse; font-size:0.75rem; }
+.score-top5-table th { color:var(--text-sub); padding:4px 6px; text-align:left; border-bottom:1px solid var(--border); }
+.score-top5-table td { padding:5px 6px; border-bottom:1px solid rgba(46,51,80,0.5); }
+.score-top5-table tr:last-child td { border-bottom:none; }
+.info-icon { font-size:0.85rem; cursor:help; }
+
+/* ===== v3.0 アラートアイテム（赤い件数） ===== */
+.alert-item-count-red { color:var(--red) !important; font-size:1.1rem; font-weight:700; }
+
+/* ===== v3.0 メンバーカード強化 ===== */
+.member-bottom-row { align-items:flex-start; }
+.member-grid-card { flex:4; min-width:0; }
+.score-factor-card { flex:1; min-width:200px; max-width:260px; }
+.member-grid { display:flex; flex-wrap:wrap; gap:12px; padding:4px 0; }
+.member-card { background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:14px 16px; width:220px; }
+.member-card-header { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; }
+.member-card-avatar { font-size:24px; flex-shrink:0; }
+.member-card-info { flex:1; min-width:0; }
+.member-card-name { font-size:0.9rem; font-weight:700; }
+.member-card-dept { font-size:0.7rem; color:var(--text-sub); }
+.member-card-score-block { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
+.member-card-score { font-size:1.8rem; font-weight:800; line-height:1; }
+.member-card-lv-badge { font-size:0.7rem; font-weight:700; color:#fff; border-radius:6px; padding:3px 7px; text-align:center; line-height:1.3; }
+.member-card-stats { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
+.member-stat-item { background:var(--bg2); border-radius:6px; padding:6px 8px; }
+.member-stat-icon { font-size:12px; margin-bottom:1px; }
+.member-stat-label { font-size:0.65rem; color:var(--text-sub); margin-bottom:2px; }
+.member-stat-value { font-size:0.82rem; font-weight:600; }
+.member-stat-value.red { color:var(--red); }
+.member-stat-value.orange { color:var(--orange); }
+.member-card-reason { font-size:0.7rem; color:var(--text-sub); border-top:1px solid var(--border); padding-top:6px; line-height:1.4; }
+
+/* ===== v3.0 業務負荷スコア算出要因パネル ===== */
+.score-factor-list { display:flex; flex-direction:column; gap:6px; }
+.score-factor-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:6px; font-size:0.82rem; }
+.factor-vac         { background:rgba(231,76,60,0.12); border-left:3px solid #e74c3c; }
+.factor-break0      { background:rgba(230,126,34,0.12); border-left:3px solid #e67e22; }
+.factor-ot          { background:rgba(241,196,15,0.12); border-left:3px solid #f1c40f; }
+.factor-break-short { background:rgba(79,142,247,0.12); border-left:3px solid #4f8ef7; }
+.factor-complex     { background:rgba(155,89,182,0.12); border-left:3px solid #9b59b6; }
+.score-factor-icon  { font-size:14px; flex-shrink:0; }
+.score-factor-label { flex:1; color:var(--text); }
+.score-factor-weight { font-weight:700; color:var(--text-sub); white-space:nowrap; font-size:0.78rem; }
+.score-factor-note  { font-size:0.72rem; color:var(--text-sub); margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
