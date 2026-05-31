@@ -71,7 +71,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Go
 .header-user-role { font-size:0.75rem; color:var(--text-sub); }
 
 /* タブコンテンツ */
-.tab-content { display:none; padding:12px 20px; overflow-y:auto; flex:1; }
+.tab-content { display:none; padding:6px 8px; overflow-y:auto; flex:1; }
 .tab-content.active { display:block; }
 
 /* ===== KPIカード ===== */
@@ -417,19 +417,19 @@ body { font-size: 15px; }
 /* 行1: スコアカード + KPI */
 .pc-row1 {
   display: grid;
-  grid-template-columns: 240px repeat(5, 1fr);
+  grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr 1fr;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
 }
 .pc-score-card {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--card-r);
-  padding: 10px 14px;
+  padding: 7px 12px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
+  gap: 3px;
 }
 .pc-score-card-title { font-size: 12px; color: var(--text-sub); font-weight: 600; }
 .pc-score-icon { font-size: 20px; margin-bottom: 2px; }
@@ -463,15 +463,15 @@ body { font-size: 15px; }
 /* 行2: スコア内訳 + 負荷要因 + 面談サマリー */
 .pc-row2 {
   display: grid;
-  grid-template-columns: 2fr 1.2fr 2fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
 }
 .pc-card {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--card-r);
-  padding: 10px 12px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
 }
@@ -498,7 +498,7 @@ body { font-size: 15px; }
   font-weight: 600;
 }
 .pc-card-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-.pc-score-bar-wrap { position: relative; height: 160px; }
+.pc-score-bar-wrap { position: relative; height: 140px; }
 
 .pc-factor-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
 .pc-factor-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); line-height: 1.4; }
@@ -514,9 +514,9 @@ body { font-size: 15px; }
 /* 行3: 業務区分別分析 + 日別負荷推移 */
 .pc-row3 {
   display: grid;
-  grid-template-columns: 1fr 1.6fr;
+  grid-template-columns: 1fr 1.8fr;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 .pc-worktype-inner { display: grid; grid-template-columns: 160px 1fr; gap: 12px; align-items: start; }
 .pc-worktype-body { display: grid; grid-template-columns: 140px 1fr; gap: 10px; align-items: start; }
@@ -532,30 +532,43 @@ body { font-size: 15px; }
 .pc-wt-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
 .pc-diff-up { color: var(--red); }
 .pc-diff-dn { color: var(--green); }
-.pc-daily-wrap { position: relative; height: 180px; }
+.pc-daily-wrap { position: relative; height: 160px; }
 
 /* 行4: 異常日一覧 + バブルチャート + 面談アドバイス */
 .pc-row4 {
   display: grid;
-  grid-template-columns: 2fr 1.4fr 1.6fr;
+  grid-template-columns: 1fr 1.8fr;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
-.pc-anomaly-wrap { overflow-x: auto; max-height: 200px; overflow-y: auto; }
+.pc-anomaly-wrap { overflow-x: auto; max-height: 155px; overflow-y: auto; }
 .pc-anomaly-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.pc-anomaly-table th { color: var(--text-sub); font-weight: 600; padding: 5px 6px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; position: sticky; top: 0; background: var(--bg2); }
-.pc-anomaly-table td { color: var(--text); padding: 5px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.pc-anomaly-table th { color: var(--text-sub); font-weight: 600; padding: 4px 5px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; position: sticky; top: 0; background: var(--bg2); }
+.pc-anomaly-table td { color: var(--text); padding: 4px 5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .pc-anomaly-red    { color: var(--red)    !important; font-weight: 600; }
 .pc-anomaly-orange { color: var(--orange) !important; font-weight: 600; }
 .pc-anomaly-yellow { color: var(--yellow) !important; font-weight: 600; }
 .pc-anomaly-memo   { color: var(--text-sub); font-size: 11px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
-.pc-bubble-wrap { position: relative; height: 180px; }
+.pc-bubble-wrap { position: relative; height: 155px; }
+.pc-row5 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 0;
+}
+.pc-advice-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: start;
+}
 
-.pc-advice-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; }
-.pc-advice-item { padding: 5px 8px; background: var(--bg); border-radius: 6px; }
+.pc-advice-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 0; }
+.pc-advice-item { padding: 4px 7px; background: var(--bg); border-radius: 6px; }
 .pc-advice-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
 .pc-advice-text  { font-size: 11px; color: var(--text-sub); line-height: 1.4; }
 .pc-next-action-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.pc-next-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 5px; padding-top: 4px; border-top: 1px solid var(--border); }
 .pc-next-action-items { display: flex; flex-direction: column; gap: 5px; }
 .pc-next-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text); cursor: pointer; }
 .pc-next-item input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }

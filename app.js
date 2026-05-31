@@ -1600,38 +1600,94 @@ function renderPcBubbleChart(st) {
   const wm = loadSettings().workMaster;
   const totalMin = st.totalMin || 1;
 
-  const bubbleData = wm
-    .filter(wt => st.byType[wt.name] && st.byType[wt.name] > 0)
-    .map(wt => {
-      const min = st.byType[wt.name] || 0;
-      const h   = Math.round(min/60*10)/10;
-      const pct = Math.round(min/totalMin*100);
-      return {
-        label: wt.name,
-        data: [{ x: h, y: wt.importance, r: Math.max(6, Math.min(30, Math.sqrt(h) * 4)) }],
-        backgroundColor: wt.color + 'aa',
-        borderColor: wt.color,
-        borderWidth: 2,
-      };
-    });
+  // 表示対象の業務区分を絞り込む
+  const activeTypes = wm.filter(wt => st.byType[wt.name] && st.byType[wt.name] > 0);
+
+  // 縦軸最大値：最高重要度 × 1.2（切り上げ）
+  const maxImportance = activeTypes.length > 0 ? Math.max(...activeTypes.map(wt => wt.importance)) : 30;
+  const yMax = Math.ceil(maxImportance * 1.2);
+
+  const bubbleData = activeTypes.map(wt => {
+    const min = st.byType[wt.name] || 0;
+    const h   = Math.round(min / 60 * 10) / 10;          // 実業務時間（h）
+    const pct = Math.round(min / totalMin * 1000) / 10;  // 構成比（%）
+    // バブルサイズ：実業務時間に比例（最小6、最大32）
+    const r = Math.max(6, Math.min(32, Math.sqrt(h) * 5));
+    return {
+      label: wt.name,
+      data: [{ x: pct, y: wt.importance, r, _h: h, _pct: pct }],
+      backgroundColor: wt.color + 'bb',
+      borderColor: wt.color,
+      borderWidth: 2,
+    };
+  });
+
+  // 横軸最大値：最大構成比 × 1.3（余白確保）
+  const maxPct = bubbleData.length > 0
+    ? Math.max(...bubbleData.map(d => d.data[0].x))
+    : 100;
+  const xMax = Math.min(100, Math.ceil(maxPct * 1.3 / 10) * 10);
+
+  // バブル上に業務区分名を描画するカスタムプラグイン
+  const labelPlugin = {
+    id: 'bubbleLabel',
+    afterDatasetsDraw(chart) {
+      const c = chart.ctx;
+      chart.data.datasets.forEach((ds, i) => {
+        const meta = chart.getDatasetMeta(i);
+        if (!meta.visible) return;
+        meta.data.forEach((el, j) => {
+          const raw = ds.data[j];
+          const r = el.options ? el.options.radius : (raw.r || 8);
+          c.save();
+          c.font = `bold ${Math.max(9, Math.min(12, r * 0.7))}px sans-serif`;
+          c.fillStyle = '#ffffff';
+          c.textAlign = 'center';
+          c.textBaseline = 'middle';
+          // 長いラベルは省略
+          const label = ds.label.length > 5 ? ds.label.slice(0, 5) + '…' : ds.label;
+          c.fillText(label, el.x, el.y);
+          c.restore();
+        });
+      });
+    }
+  };
 
   chartInstances['pc-bubble'] = new Chart(ctx, {
     type: 'bubble',
     data: { datasets: bubbleData },
+    plugins: [labelPlugin],
     options: {
       responsive: true, maintainAspectRatio: false,
       scales: {
-        x: { title:{ display:true, text:'業務負荷・時間(h)', color:'#8892b0', font:{size:11} }, ticks:{ color:'#c0c8e0', font:{size:11} }, grid:{ color:'#2e3350' } },
-        y: { title:{ display:true, text:'会社貢献度（重要度）', color:'#8892b0', font:{size:11} }, ticks:{ color:'#c0c8e0', font:{size:11} }, grid:{ color:'#2e3350' }, min:0, max:100 },
+        x: {
+          title: { display: true, text: '業務時間構成比（%）', color: '#8892b0', font: { size: 11 } },
+          ticks: { color: '#c0c8e0', font: { size: 10 }, callback: v => v + '%' },
+          grid:  { color: '#2e3350' },
+          min: 0, max: xMax
+        },
+        y: {
+          title: { display: true, text: '重要度（点）', color: '#8892b0', font: { size: 11 } },
+          ticks: { color: '#c0c8e0', font: { size: 10 } },
+          grid:  { color: '#2e3350' },
+          min: 0, max: yMax
+        },
       },
       plugins: {
-        legend: { labels:{ color:'#c0c8e0', font:{size:10}, boxWidth:10 } },
-        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw.x}h / 重要度${ctx.raw.y}` } }
+        legend: { labels: { color: '#c0c8e0', font: { size: 10 }, boxWidth: 10 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const raw = ctx.raw;
+              return `${ctx.dataset.label}: 構成比${raw._pct}% / 実時間${raw._h}h / 重要度${raw.y}点`;
+            }
+          }
+        }
       }
     }
   });
 
-  // 4象限ラベルをCSSで追加（canvas上に直接描画）
+  // 4象限ラベルをcanvas上に直接描画
   const chart = chartInstances['pc-bubble'];
   if (chart) {
     const origDraw = chart.draw.bind(chart);
@@ -1644,11 +1700,11 @@ function renderPcBubbleChart(st) {
       const yMid = yScale.getPixelForValue((yScale.max + yScale.min) / 2);
       c.save();
       c.font = '10px sans-serif';
-      c.fillStyle = 'rgba(200,200,200,0.4)';
-      c.fillText('高貢献・低負荷', xScale.left + 4, yScale.top + 14);
-      c.fillText('高貢献・高負荷', xMid + 4,        yScale.top + 14);
-      c.fillText('低貢献・低負荷', xScale.left + 4, yMid + 14);
-      c.fillText('低貢献・高負荷', xMid + 4,        yMid + 14);
+      c.fillStyle = 'rgba(200,200,200,0.35)';
+      c.fillText('高重要・低比率', xScale.left + 4, yScale.top + 14);
+      c.fillText('高重要・高比率', xMid + 4,        yScale.top + 14);
+      c.fillText('低重要・低比率', xScale.left + 4, yMid + 14);
+      c.fillText('低重要・高比率', xMid + 4,        yMid + 14);
       c.restore();
     };
   }

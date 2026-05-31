@@ -501,7 +501,7 @@
           <div class="pc-card">
             <div class="pc-card-header"><h3>日別負荷推移</h3></div>
             <div class="pc-card-body">
-              <div style="height:180px"><canvas id="chart-pc-daily"></canvas></div>
+              <div style="height:160px"><canvas id="chart-pc-daily"></canvas></div>
             </div>
           </div>
         </div>
@@ -528,20 +528,22 @@
               </table>
             </div>
           </div>
-          <!-- 得意先×業務区分バブルチャート -->
+          <!-- 業務区分別 重要度×時間配分マップ -->
           <div class="pc-card">
             <div class="pc-card-header">
-              <h3>得意先・案件別 貢献度×負荷</h3>
+              <h3>業務区分別 重要度×時間配分マップ</h3>
             </div>
             <div class="pc-card-body">
-              <div style="height:180px"><canvas id="chart-pc-bubble"></canvas></div>
-              <p class="pc-chart-note">※ バブルの大きさは今月の業務時間を表します。</p>
+              <div style="height:155px"><canvas id="chart-pc-bubble"></canvas></div>
+              <p class="pc-chart-note">※ バブルサイズは実業務時間。横軸は時間構成比（%）。</p>
             </div>
           </div>
-          <!-- 個人面談アドバイス -->
+        </div>
+        <!-- 個人面談アドバイス（最下部） -->
+        <div class="pc-row pc-row5">
           <div class="pc-card">
             <div class="pc-card-header"><h3>個人面談アドバイス</h3></div>
-            <div class="pc-card-body">
+            <div class="pc-card-body pc-advice-body">
               <div class="pc-advice-list" id="pc-advice-list"></div>
               <div class="pc-next-actions" id="pc-next-actions">
                 <div class="pc-next-title">来月アクション</div>
