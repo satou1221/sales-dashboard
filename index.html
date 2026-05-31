@@ -39,7 +39,10 @@
       <span>業務管理</span>
     </div>
     <nav class="sidebar-nav">
-      <button class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <button class="nav-item active" data-tab="summary" onclick="switchTab('summary')">
+        <span class="nav-icon">📋</span><span>全体サマリー</span>
+      </button>
+      <button class="nav-item" data-tab="dashboard" onclick="switchTab('dashboard')">
         <span class="nav-icon">🏠</span><span>ダッシュボード</span>
       </button>
       <button class="nav-item" data-tab="dept" onclick="switchTab('dept')">
@@ -88,8 +91,59 @@
       </div>
     </header>
 
+    <!-- ===== 全体サマリータブ ===== -->
+    <div id="tab-summary" class="tab-content active">
+      <div class="summary-top-row">
+        <div class="chart-card summary-kpi-main">
+          <div class="chart-header"><h3>📊 組織パフォーマンス・リスク概況</h3></div>
+          <div class="summary-kpi-container">
+            <div class="summary-kpi-item">
+              <div class="label">平均貢献スコア</div>
+              <div class="value" id="sum-avg-contribution">--</div>
+              <div class="sub">目標: 80.0</div>
+            </div>
+            <div class="summary-kpi-item">
+              <div class="label">平均負荷リスク</div>
+              <div class="value" id="sum-avg-risk">--</div>
+              <div class="sub">許容圏: 2.0以下</div>
+            </div>
+            <div class="summary-kpi-item">
+              <div class="label">要対応者数</div>
+              <div class="value red" id="sum-alert-count">--</div>
+              <div class="sub">Lv.3以上</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card chart-lg">
+          <div class="chart-header">
+            <h3>分布分析（貢献度 × 負荷リスク）</h3>
+            <div class="chart-legend-sub">右下：高貢献・低リスク（理想） / 左上：低貢献・高リスク（要改善）</div>
+          </div>
+          <div class="chart-body" style="height: 400px;">
+            <canvas id="chart-summary-bubble"></canvas>
+          </div>
+        </div>
+        <div class="chart-card chart-sm">
+          <div class="chart-header"><h3>⚠️ リスクレベル内訳</h3></div>
+          <div class="chart-body">
+            <canvas id="chart-risk-level-pie"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card full-width">
+          <div class="chart-header"><h3>📅 負荷リスク・ヒートマップ（日別）</h3></div>
+          <div id="summary-heatmap-container" class="heatmap-container"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ===== ダッシュボードタブ ===== -->
-    <div id="tab-dashboard" class="tab-content active">
+    <div id="tab-dashboard" class="tab-content">
 
       <!-- KPIカード -->
       <div class="kpi-grid">
@@ -356,9 +410,75 @@
 
     <!-- ===== 設定タブ ===== -->
     <div id="tab-settings" class="tab-content">
-      <div class="settings-grid">
+      <div style="display: flex; flex-direction: column; gap: 16px;">
 
+        <!-- 業務区分マスター -->
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <h3>🛠️ 業務区分マスター設定</h3>
+            <button class="btn-save" style="padding: 6px 12px; font-size: 0.8rem;" onclick="addWorkTypeRow()">＋ 追加</button>
+          </div>
+          <div class="settings-table-wrap">
+            <table class="settings-table">
+              <thead>
+                <tr>
+                  <th>業務区分名</th>
+                  <th>重要度 (0-100)</th>
+                  <th>表示色</th>
+                  <th style="width: 80px;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="worktype-master-body">
+                <!-- JSで生成 -->
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td style="text-align: right; font-weight: bold;">合計</td>
+                  <td id="worktype-total-importance" style="font-weight: bold;">0</td>
+                  <td colspan="2" id="worktype-total-msg" style="font-size: 0.8rem;"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+            <button class="btn-save" style="background: var(--text-sub); color: var(--bg);" onclick="loadSettingsForm()">↺ リセット</button>
+            <button class="btn-save" onclick="saveWorkTypeMaster()">💾 業務区分を保存</button>
+          </div>
+        </div>
+
+        <!-- スコアリング設定 -->
         <div class="chart-card">
+          <div class="chart-header"><h3>⚖️ 負荷スコア重み付け設定</h3></div>
+          <div class="settings-form">
+            <div class="setting-item">
+              <label>時間外労働 (1時間あたり)</label>
+              <div class="setting-input-row">
+                <input type="number" id="weight-ot" step="0.1" min="0"> <span>pt</span>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label>深夜労働 (1時間あたり)</label>
+              <div class="setting-input-row">
+                <input type="number" id="weight-late" step="0.1" min="0"> <span>pt</span>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label>休憩不足 (1回あたり)</label>
+              <div class="setting-input-row">
+                <input type="number" id="weight-break" step="0.1" min="0"> <span>pt</span>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label>休暇中業務 (1時間あたり)</label>
+              <div class="setting-input-row">
+                <input type="number" id="weight-vacation" step="0.1" min="0"> <span>pt</span>
+              </div>
+            </div>
+          </div>
+          <button class="btn-save" onclick="saveRiskWeights()">💾 重み付けを保存</button>
+        </div>
+
+         <div class="chart-card">
           <div class="chart-header"><h3>⚠️ アラート閾値設定</h3></div>
           <div class="settings-form">
             <div class="setting-item">

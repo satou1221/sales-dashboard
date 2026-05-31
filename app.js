@@ -4,19 +4,28 @@
 // 定数・グローバル
 // ============================================================
 const DEFAULT_PASSWORD = 'admin1234';
-const WORK_COLORS = {
-  '九電碍・点':       '#0066FF',  // 鮮青
-  '九電管路':         '#9900CC',  // 鮮紫
-  '他電力碍・点':     '#00CCCC',  // シアン
-  '直送商':           '#FF3300',  // 鮮赤
-  '在庫商':           '#FF9900',  // 鮮オレンジ
-  '外販製品（非電力）':'#00CC44',  // 鮮緑
-  'TKD':              '#FF66CC',  // ピンク
-  '社内対応':         '#AAAAAA',  // 明るい灰（大面積展展対策）
-  '休憩':             '#FFFF00',  // 黄
-  '懇親会':           '#00FFCC',  // ミントグリーン
-  '時間外':           '#FF0066',  // ピンク赤
-  '休暇中業務':       '#66FF00',  // 黄緑
+// デフォルトの業務区分マスター
+const DEFAULT_WORK_MASTER = [
+  { name: '九電碍・点', importance: 20, color: '#0066FF' },
+  { name: '九電管路', importance: 15, color: '#9900CC' },
+  { name: '他電力碍・点', importance: 15, color: '#00CCCC' },
+  { name: '直送商', importance: 10, color: '#FF3300' },
+  { name: '在庫商', importance: 10, color: '#FF9900' },
+  { name: '外販製品（非電力）', importance: 10, color: '#00CC44' },
+  { name: 'TKD', importance: 10, color: '#FF66CC' },
+  { name: '社内対応', importance: 10, color: '#AAAAAA' },
+  { name: '休憩', importance: 0, color: '#FFFF00' },
+  { name: '懇親会', importance: 0, color: '#00FFCC' },
+  { name: '時間外', importance: 0, color: '#FF0066' },
+  { name: '休暇中業務', importance: 0, color: '#66FF00' },
+];
+
+// デフォルトの重み付け
+const DEFAULT_RISK_WEIGHTS = {
+  ot: 1.0,      // 1時間あたり1pt
+  late: 1.5,    // 1時間あたり1.5pt
+  break: 2.0,   // 1回あたり2pt
+  vacation: 1.2 // 1時間あたり1.2pt
 };
 
 let allRecords = [];    // 全CSV行データ
@@ -26,9 +35,25 @@ let chartInstances = {}; // Chart.jsインスタンス管理
 // 設定（LocalStorage）
 // ============================================================
 function loadSettings() {
-  const def = { otAlert: 45, vacationAlert: 10, breakOk: 40, breakWarn: 1 };
-  try { return Object.assign(def, JSON.parse(localStorage.getItem('dash_settings') || '{}')); }
+  const def = { 
+    otAlert: 45, 
+    vacationAlert: 10, 
+    breakOk: 40, 
+    breakWarn: 1,
+    workMaster: DEFAULT_WORK_MASTER,
+    riskWeights: DEFAULT_RISK_WEIGHTS
+  };
+  try { 
+    const stored = JSON.parse(localStorage.getItem('dash_settings') || '{}');
+    return Object.assign(def, stored); 
+  }
   catch { return def; }
+}
+
+function getWorkColor(name) {
+  const s = loadSettings();
+  const found = s.workMaster.find(m => m.name === name);
+  return found ? found.color : '#666666';
 }
 function saveSettings() {
   const s = {
@@ -47,6 +72,96 @@ function loadSettingsForm() {
   document.getElementById('set-vacation-alert').value = s.vacationAlert;
   document.getElementById('set-break-ok').value       = s.breakOk;
   document.getElementById('set-break-warn').value     = s.breakWarn;
+
+  // 業務区分マスター
+  renderWorkTypeMasterTable(s.workMaster);
+
+  // 重み付け
+  document.getElementById('weight-ot').value = s.riskWeights.ot;
+  document.getElementById('weight-late').value = s.riskWeights.late;
+  document.getElementById('weight-break').value = s.riskWeights.break;
+  document.getElementById('weight-vacation').value = s.riskWeights.vacation;
+}
+
+function renderWorkTypeMasterTable(master) {
+  const body = document.getElementById('worktype-master-body');
+  body.innerHTML = master.map((m, i) => `
+    <tr>
+      <td><input type="text" class="wm-name" value="${m.name}"></td>
+      <td><input type="number" class="wm-importance" value="${m.importance}" min="0" max="100" oninput="updateWorkTypeTotal()"></td>
+      <td><input type="color" class="wm-color" value="${m.color}"></td>
+      <td><button class="btn-delete-row" onclick="deleteWorkTypeRow(this)">🗑️</button></td>
+    </tr>
+  `).join('');
+  updateWorkTypeTotal();
+}
+
+function addWorkTypeRow() {
+  const body = document.getElementById('worktype-master-body');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" class="wm-name" value="新業務"></td>
+    <td><input type="number" class="wm-importance" value="0" min="0" max="100" oninput="updateWorkTypeTotal()"></td>
+    <td><input type="color" class="wm-color" value="#666666"></td>
+    <td><button class="btn-delete-row" onclick="deleteWorkTypeRow(this)">🗑️</button></td>
+  `;
+  body.appendChild(tr);
+  updateWorkTypeTotal();
+}
+
+function deleteWorkTypeRow(btn) {
+  btn.closest('tr').remove();
+  updateWorkTypeTotal();
+}
+
+function updateWorkTypeTotal() {
+  const importances = Array.from(document.querySelectorAll('.wm-importance')).map(input => parseInt(input.value) || 0);
+  const total = importances.reduce((s, v) => s + v, 0);
+  const el = document.getElementById('worktype-total-importance');
+  const msg = document.getElementById('worktype-total-msg');
+  el.textContent = total;
+  if (total === 100) {
+    el.style.color = 'var(--green)';
+    msg.textContent = '✅ 合計100%です';
+    msg.style.color = 'var(--green)';
+  } else {
+    el.style.color = 'var(--red)';
+    msg.textContent = `⚠️ 合計を100にしてください（現在:${total}）`;
+    msg.style.color = 'var(--red)';
+  }
+}
+
+function saveWorkTypeMaster() {
+  const rows = Array.from(document.querySelectorAll('#worktype-master-body tr'));
+  const master = rows.map(row => ({
+    name: row.querySelector('.wm-name').value.trim(),
+    importance: parseInt(row.querySelector('.wm-importance').value) || 0,
+    color: row.querySelector('.wm-color').value
+  })).filter(m => m.name);
+
+  const total = master.reduce((s, m) => s + m.importance, 0);
+  if (total !== 100) {
+    if (!confirm(`重要度の合計が${total}です。100でなくても保存しますか？`)) return;
+  }
+
+  const s = loadSettings();
+  s.workMaster = master;
+  localStorage.setItem('dash_settings', JSON.stringify(s));
+  showToast('業務区分マスターを保存しました');
+  renderAll();
+}
+
+function saveRiskWeights() {
+  const s = loadSettings();
+  s.riskWeights = {
+    ot: parseFloat(document.getElementById('weight-ot').value) || 0,
+    late: parseFloat(document.getElementById('weight-late').value) || 0,
+    break: parseFloat(document.getElementById('weight-break').value) || 0,
+    vacation: parseFloat(document.getElementById('weight-vacation').value) || 0
+  };
+  localStorage.setItem('dash_settings', JSON.stringify(s));
+  showToast('重み付け設定を保存しました');
+  renderAll();
 }
 
 // ============================================================
@@ -90,11 +205,12 @@ function changePassword() {
 // ============================================================
 // タブ切替
 // ============================================================
-const TAB_TITLES = { dashboard:'ダッシュボード', dept:'部門別分析', personal:'個人別分析', daily:'日別分析', alert:'アラート', csv:'CSV取込', settings:'設定' };
+const TAB_TITLES = { summary:'全体サマリー', dashboard:'ダッシュボード', dept:'部門別分析', personal:'個人別分析', daily:'日別分析', alert:'アラート', csv:'CSV取込', settings:'設定' };
 function switchTab(name) {
   document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
   document.getElementById('page-title').textContent = TAB_TITLES[name] || name;
+  if (name === 'summary')  renderSummaryTab();
   if (name === 'dept')     renderDeptTab();
   if (name === 'personal') renderPersonalTab();
   if (name === 'daily')    renderDailyTab();
@@ -247,6 +363,7 @@ function getDeptStats(dept) {
 // ============================================================
 function renderAll() {
   updateHeaderPeriod();
+  renderSummaryTab();
   renderKPI();
   renderWorktypeChart();
   renderPersonalBarChart();
@@ -321,7 +438,7 @@ function renderWorktypeChart() {
   const sorted = Object.entries(byType).sort((a,b) => b[1]-a[1]);
   const labels = sorted.map(([k]) => k);
   const data   = sorted.map(([,v]) => Math.round(v/60*10)/10);
-  const colors = labels.map(l => WORK_COLORS[l] || '#666');
+  const colors = labels.map(l => getWorkColor(l));
 
   chartInstances['worktype'] = new Chart(ctx, {
     type: 'doughnut',
@@ -346,14 +463,17 @@ function renderPersonalBarChart() {
   const members = getMembers();
   if (members.length === 0) return;
 
-  const workTypes = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
+  const s = loadSettings();
+  const workTypes = s.workMaster.filter(m => m.importance > 0).map(m => m.name);
+  if (workTypes.length === 0) return;
+
   const datasets = workTypes.map(wt => ({
     label: wt,
     data: members.map(m => {
       const recs = allRecords.filter(r => r.empId === m.empId && r.workType === wt);
       return Math.round(recs.reduce((s,r) => s + r.normalMin + r.otMin + r.vacationMin, 0) / 60 * 10) / 10;
     }),
-    backgroundColor: WORK_COLORS[wt] || '#666',
+    backgroundColor: getWorkColor(wt),
     borderWidth: 0,
   }));
 
@@ -550,6 +670,191 @@ function renderCSVSummary() {
 }
 
 // ============================================================
+// スコアリング計算ロジック
+// ============================================================
+function calculateScores(empId) {
+  const s = loadSettings();
+  const st = getMemberStats(empId);
+  const recs = allRecords.filter(r => r.empId === empId);
+
+  // 1. 貢献スコア (0-100)
+  let contributionScore = 0;
+  const totalWorkMin = Object.values(st.byType).reduce((a, b) => a + b, 0);
+  if (totalWorkMin > 0) {
+    Object.entries(st.byType).forEach(([type, min]) => {
+      const master = s.workMaster.find(m => m.name === type);
+      if (master) {
+        contributionScore += (min / totalWorkMin) * master.importance;
+      }
+    });
+  }
+
+  // 2. 負荷リスクスコア
+  let riskScore = 0;
+  riskScore += (st.otMin / 60) * s.riskWeights.ot;
+  riskScore += (st.vacMin / 60) * s.riskWeights.vacation;
+  
+  const breakIssues = Object.values(st.breakByDay).filter(v => v < s.breakWarn && v >= 0).length;
+  riskScore += breakIssues * s.riskWeights.break;
+
+  let lateMin = 0;
+  recs.forEach(r => {
+    if (!r.startTime || !r.endTime) return;
+    const endH = parseInt(r.endTime.split(':')[0]);
+    const startH = parseInt(r.startTime.split(':')[0]);
+    if (endH >= 22) lateMin += (endH - 22) * 60 + parseInt(r.endTime.split(':')[1]);
+    if (startH < 5) lateMin += (5 - startH) * 60 - parseInt(r.startTime.split(':')[1]);
+  });
+  riskScore += (lateMin / 60) * s.riskWeights.late;
+
+  let riskLevel = 1;
+  if (riskScore >= 15) riskLevel = 4;
+  else if (riskScore >= 10) riskLevel = 3;
+  else if (riskScore >= 5) riskLevel = 2;
+
+  return { 
+    contribution: Math.round(contributionScore * 10) / 10, 
+    risk: Math.round(riskScore * 10) / 10,
+    riskLevel
+  };
+}
+
+// ============================================================
+// 全体サマリータブ
+// ============================================================
+function renderSummaryTab() {
+  const members = getMembers();
+  if (members.length === 0) return;
+
+  const scores = members.map(m => ({
+    ...m,
+    ...calculateScores(m.empId)
+  }));
+
+  const avgCont = scores.reduce((s, v) => s + v.contribution, 0) / scores.length;
+  const avgRisk = scores.reduce((s, v) => s + v.risk, 0) / scores.length;
+  const alertCount = scores.filter(s => s.riskLevel >= 3).length;
+
+  const elCont = document.getElementById('sum-avg-contribution');
+  const elRisk = document.getElementById('sum-avg-risk');
+  const elAlert = document.getElementById('sum-alert-count');
+  
+  if (elCont) elCont.textContent = avgCont.toFixed(1);
+  if (elRisk) elRisk.textContent = avgRisk.toFixed(1);
+  if (elAlert) elAlert.textContent = alertCount;
+
+  renderSummaryBubbleChart(scores);
+  renderRiskLevelPieChart(scores);
+  renderSummaryHeatmap();
+}
+
+function renderSummaryBubbleChart(scores) {
+  const canvas = document.getElementById('chart-summary-bubble');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  destroyChart('summary-bubble');
+
+  chartInstances['summary-bubble'] = new Chart(ctx, {
+    type: 'bubble',
+    data: {
+      datasets: scores.map(s => ({
+        label: s.name,
+        data: [{ x: s.contribution, y: s.risk, r: 8 }],
+        backgroundColor: s.riskLevel >= 3 ? 'rgba(231, 76, 60, 0.7)' : 'rgba(79, 142, 247, 0.7)',
+        borderColor: s.riskLevel >= 3 ? '#e74c3c' : '#4f8ef7',
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { title: { display: true, text: '貢献スコア', color: '#8b92b0' }, min: 0, max: 100, grid: { color: '#2e3350' }, ticks: { color: '#8b92b0' } },
+        y: { title: { display: true, text: '負荷リスク', color: '#8b92b0' }, min: 0, grid: { color: '#2e3350' }, ticks: { color: '#8b92b0' } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: 貢献${ctx.raw.x} / リスク${ctx.raw.y}`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderRiskLevelPieChart(scores) {
+  const canvas = document.getElementById('chart-risk-level-pie');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  destroyChart('risk-level-pie');
+
+  const levels = [0, 0, 0, 0];
+  scores.forEach(s => levels[s.riskLevel - 1]++);
+
+  chartInstances['risk-level-pie'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Lv.1 低', 'Lv.2 中', 'Lv.3 高', 'Lv.4 極めて高'],
+      datasets: [{
+        data: levels,
+        backgroundColor: ['#2ecc71', '#f1c40f', '#e67e22', '#e74c3c'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#8b92b0', font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function renderSummaryHeatmap() {
+  const el = document.getElementById('summary-heatmap-container');
+  if (!el) return;
+  const dates = [...new Set(allRecords.map(r => r.date))].sort();
+  if (dates.length === 0) { el.innerHTML = '<p style="color:var(--text-sub)">データがありません</p>'; return; }
+
+  const dayRisks = {};
+  dates.forEach(d => {
+    const dailyRecs = allRecords.filter(r => r.date === d);
+    const emps = [...new Set(dailyRecs.map(r => r.empId))];
+    let totalRisk = 0;
+    emps.forEach(empId => {
+      const r = dailyRecs.filter(rec => rec.empId === empId);
+      const ot = r.reduce((s, v) => s + v.otMin, 0) / 60;
+      const br = r.reduce((s, v) => s + v.breakMin, 0);
+      const s = loadSettings();
+      let risk = ot * s.riskWeights.ot;
+      if (br < s.breakWarn) risk += s.riskWeights.break;
+      totalRisk += risk;
+    });
+    dayRisks[d] = emps.length > 0 ? totalRisk / emps.length : 0;
+  });
+
+  const ym = dates[0].substring(0, 7);
+  const [y, m] = ym.split('-').map(Number);
+  const firstDay = new Date(y, m - 1, 1).getDay();
+  const lastDate = new Date(y, m, 0).getDate();
+
+  let html = `<table class="heatmap-table"><thead><tr>${['日','月','火','水','木','金','土'].map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody><tr>`;
+  for (let i = 0; i < firstDay; i++) html += '<td></td>';
+  for (let day = 1; day <= lastDate; day++) {
+    const dateStr = `${ym}-${String(day).padStart(2, '0')}`;
+    const risk = dayRisks[dateStr] || 0;
+    const ratio = Math.min(risk / 5, 1);
+    const bg = risk > 0 ? `rgba(231, 76, 60, ${0.1 + ratio * 0.8})` : 'transparent';
+    html += `<td><div class="heatmap-cell" style="background:${bg};color:#e8eaf0" title="${dateStr}: リスク${risk.toFixed(1)}">
+      <div>${day}</div>
+    </div></td>`;
+    if (new Date(y, m - 1, day).getDay() === 6 && day < lastDate) html += '</tr><tr>';
+  }
+  html += '</tr></tbody></table>';
+  el.innerHTML = html;
+}
+
+// ============================================================
 // 部門別分析タブ
 // ============================================================
 function renderDeptTab() {
@@ -563,14 +868,17 @@ function renderDeptWorktypeChart() {
   const ctx = document.getElementById('chart-dept-worktype').getContext('2d');
   destroyChart('dept-worktype');
   const depts = ['営業部本社', '営業部福岡支社'];
-  const workTypes = ['九電碍・点','九電管路','他電力碍・点','直送商','在庫商','外販製品（非電力）','TKD','社内対応'];
+  const s = loadSettings();
+  const workTypes = s.workMaster.filter(m => m.importance > 0).map(m => m.name);
+  if (workTypes.length === 0) return;
+
   const datasets = workTypes.map(wt => ({
     label: wt,
     data: depts.map(dept => {
       const recs = allRecords.filter(r => r.dept === dept && r.workType === wt);
       return Math.round(recs.reduce((s,r) => s + r.normalMin + r.otMin + r.vacationMin, 0) / 60 * 10) / 10;
     }),
-    backgroundColor: WORK_COLORS[wt] || '#666',
+    backgroundColor: getWorkColor(wt),
     borderWidth: 0,
   }));
   chartInstances['dept-worktype'] = new Chart(ctx, {
@@ -601,7 +909,7 @@ function renderDeptPieChart(dept, canvasId) {
     type: 'doughnut',
     data: {
       labels: sorted.map(([k])=>k),
-      datasets: [{ data: sorted.map(([,v])=>Math.round(v/60*10)/10), backgroundColor: sorted.map(([k])=>WORK_COLORS[k]||'#666'), borderWidth:0 }]
+      datasets: [{ data: sorted.map(([,v])=>Math.round(v/60*10)/10), backgroundColor: sorted.map(([k])=>getWorkColor(k)), borderWidth:0 }]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ color:'#8b92b0', font:{size:10}, boxWidth:10 } } } }
   });
@@ -694,7 +1002,7 @@ function renderPersonalDetail() {
     type: 'doughnut',
     data: {
       labels: sorted.map(([k])=>k),
-      datasets: [{ data: sorted.map(([,v])=>Math.round(v/60*10)/10), backgroundColor: sorted.map(([k])=>WORK_COLORS[k]||'#666'), borderWidth:0 }]
+      datasets: [{ data: sorted.map(([,v])=>Math.round(v/60*10)/10), backgroundColor: sorted.map(([k])=>getWorkColor(k)), borderWidth:0 }]
     },
     options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ color:'#8b92b0', font:{size:11}, boxWidth:12 } } } }
   });
@@ -861,4 +1169,11 @@ function showToast(msg) {
 document.addEventListener('DOMContentLoaded', () => {
   // Enterキーでログイン
   document.getElementById('login-password').focus();
+  
+  // 既にログイン状態（リロード時など）の対応
+  if (document.getElementById('main-screen').style.display !== 'none') {
+    loadSettingsForm();
+    loadStoredData();
+    renderAll();
+  }
 });
