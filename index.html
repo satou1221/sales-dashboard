@@ -381,7 +381,7 @@
       <div id="personal-detail-section" style="display:none">
 
         <!-- 行1: スコアカード + KPI6枚 -->
-        <div class="pc-row pc-row-kpi">
+        <div class="pc-row pc-row1">
           <!-- 業務負荷スコアカード -->
           <div class="pc-score-card" id="pc-score-card">
             <div class="pc-score-icon">📊</div>
@@ -443,7 +443,7 @@
         </div>
 
         <!-- 行2: スコア内訳 + 主な負荷要因 + 面談用サマリー -->
-        <div class="pc-row pc-row-3col">
+        <div class="pc-row pc-row2">
           <!-- 業務負荷スコア内訳 -->
           <div class="pc-card">
             <div class="pc-card-header">
@@ -451,7 +451,7 @@
               <span class="pc-card-total" id="pc-score-total-label">合計 --点</span>
             </div>
             <div class="pc-card-body">
-              <canvas id="chart-pc-score-bar" style="max-height:200px"></canvas>
+              <canvas id="chart-pc-score-bar" style="max-height:160px"></canvas>
             </div>
           </div>
           <!-- 主な負荷要因 -->
@@ -471,13 +471,13 @@
         </div>
 
         <!-- 行3: 業務区分別分析 + 日別負荷推移 -->
-        <div class="pc-row pc-row-2col-wide">
+        <div class="pc-row pc-row3">
           <!-- 業務区分別分析 -->
           <div class="pc-card">
             <div class="pc-card-header"><h3>業務区分別分析</h3></div>
             <div class="pc-card-body pc-worktype-body">
               <div class="pc-worktype-chart">
-                <canvas id="chart-pc-worktype-pie"></canvas>
+                <canvas id="chart-pc-worktype-pie" style="width:100%;height:100%"></canvas>
                 <div class="pc-worktype-center" id="pc-worktype-center"></div>
               </div>
               <div class="pc-worktype-table-wrap">
@@ -501,13 +501,13 @@
           <div class="pc-card">
             <div class="pc-card-header"><h3>日別負荷推移</h3></div>
             <div class="pc-card-body">
-              <div style="height:240px"><canvas id="chart-pc-daily"></canvas></div>
+              <div style="height:180px"><canvas id="chart-pc-daily"></canvas></div>
             </div>
           </div>
         </div>
 
         <!-- 行4: 異常日一覧 + バブルチャート + 面談アドバイス -->
-        <div class="pc-row pc-row-3col-bottom">
+        <div class="pc-row pc-row4">
           <!-- 異常日一覧 -->
           <div class="pc-card">
             <div class="pc-card-header"><h3>異常日一覧</h3></div>
@@ -534,7 +534,7 @@
               <h3>得意先・案件別 貢献度×負荷</h3>
             </div>
             <div class="pc-card-body">
-              <div style="height:240px"><canvas id="chart-pc-bubble"></canvas></div>
+              <div style="height:180px"><canvas id="chart-pc-bubble"></canvas></div>
               <p class="pc-chart-note">※ バブルの大きさは今月の業務時間を表します。</p>
             </div>
           </div>

@@ -71,7 +71,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Go
 .header-user-role { font-size:0.75rem; color:var(--text-sub); }
 
 /* タブコンテンツ */
-.tab-content { display:none; padding:20px 24px; overflow-y:auto; flex:1; }
+.tab-content { display:none; padding:12px 20px; overflow-y:auto; flex:1; }
 .tab-content.active { display:block; }
 
 /* ===== KPIカード ===== */
@@ -98,7 +98,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Go
 .chart-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
 .chart-header h3 { font-size:0.9rem; font-weight:700; color:var(--text); }
 .chart-body { position:relative; height:220px; }
-.chart-body-lg { height:280px; }
+.chart-body-lg { height:220px; }
 .chart-select { background:var(--bg3); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:4px 8px; font-size:0.8rem; }
 
 /* 休憩状況 */
@@ -411,28 +411,33 @@ body { font-size: 15px; }
    個人別分析タブ v4.0 (pc-*)
    ============================================================ */
 
-#personal-compare-section { padding: 0 0 16px; }
-#personal-detail-section  { padding: 0 0 16px; }
+#personal-compare-section { padding: 0 0 8px; }
+#personal-detail-section  { padding: 0 0 8px; }
 
 /* 行1: スコアカード + KPI */
 .pc-row1 {
   display: grid;
-  grid-template-columns: 260px repeat(5, 1fr);
-  gap: 12px;
-  margin-bottom: 12px;
+  grid-template-columns: 240px repeat(5, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
 }
 .pc-score-card {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--card-r);
-  padding: 14px 16px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  justify-content: center;
+  gap: 4px;
 }
 .pc-score-card-title { font-size: 12px; color: var(--text-sub); font-weight: 600; }
+.pc-score-icon { font-size: 20px; margin-bottom: 2px; }
+.pc-score-body { display: flex; flex-direction: column; gap: 3px; }
+.pc-score-label { font-size: 11px; color: var(--text-sub); font-weight: 600; }
+.pc-score-unit { font-size: 14px; font-weight: 600; color: var(--text-sub); }
 .pc-score-main { display: flex; align-items: center; gap: 10px; }
-.pc-score-val { font-size: 52px; font-weight: 800; line-height: 1; }
+.pc-score-val { font-size: 38px; font-weight: 800; line-height: 1; }
 .pc-score-right { display: flex; flex-direction: column; gap: 4px; }
 .pc-lv-badge { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; color: #fff; }
 .pc-score-sub { font-size: 11px; color: var(--text-sub); }
@@ -442,37 +447,65 @@ body { font-size: 15px; }
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--card-r);
-  padding: 12px 14px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  justify-content: center;
+  gap: 2px;
 }
 .pc-kpi-title { font-size: 11px; color: var(--text-sub); font-weight: 600; }
-.pc-kpi-val   { font-size: 24px; font-weight: 700; color: var(--text); line-height: 1.1; }
+.pc-kpi-icon { font-size: 16px; margin-bottom: 2px; }
+.pc-kpi-body { display: flex; flex-direction: column; gap: 1px; }
+.pc-kpi-label { font-size: 11px; color: var(--text-sub); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-kpi-val   { font-size: 20px; font-weight: 700; color: var(--text); line-height: 1.1; }
 .pc-kpi-sub   { font-size: 11px; color: var(--text-sub); }
 
 /* 行2: スコア内訳 + 負荷要因 + 面談サマリー */
 .pc-row2 {
   display: grid;
   grid-template-columns: 2fr 1.2fr 2fr;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 .pc-card {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--card-r);
-  padding: 14px 16px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+}
+.pc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+.pc-card-header h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.pc-card-body {
+  flex: 1;
+  min-height: 0;
+}
+.pc-card-total {
+  font-size: 12px;
+  color: var(--text-sub);
+  font-weight: 600;
 }
 .pc-card-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-.pc-score-bar-wrap { position: relative; height: 220px; }
+.pc-score-bar-wrap { position: relative; height: 160px; }
 
-.pc-factor-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.pc-factor-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
 .pc-factor-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); line-height: 1.4; }
 .pc-factor-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-.pc-summary-list { display: flex; flex-direction: column; gap: 8px; }
-.pc-summary-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; background: var(--bg); border-radius: 6px; }
+.pc-summary-list { display: flex; flex-direction: column; gap: 5px; }
+.pc-summary-item { display: flex; align-items: flex-start; gap: 6px; padding: 5px 8px; background: var(--bg); border-radius: 6px; }
 .pc-summary-icon { font-size: 14px; flex-shrink: 0; margin-top: 2px; }
 .pc-summary-body { display: flex; flex-direction: column; gap: 2px; }
 .pc-summary-label { font-size: 11px; font-weight: 700; color: var(--text-sub); }
@@ -482,11 +515,13 @@ body { font-size: 15px; }
 .pc-row3 {
   display: grid;
   grid-template-columns: 1fr 1.6fr;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 .pc-worktype-inner { display: grid; grid-template-columns: 160px 1fr; gap: 12px; align-items: start; }
-.pc-worktype-pie-wrap { position: relative; height: 180px; }
+.pc-worktype-body { display: grid; grid-template-columns: 140px 1fr; gap: 10px; align-items: start; }
+.pc-worktype-chart { position: relative; height: 150px; width: 140px; flex-shrink: 0; }
+.pc-worktype-pie-wrap { position: relative; height: 150px; }
 .pc-worktype-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; pointer-events: none; }
 .pc-pie-center-label { font-size: 10px; color: var(--text-sub); }
 .pc-pie-center-val   { font-size: 18px; font-weight: 700; color: var(--text); }
@@ -497,16 +532,16 @@ body { font-size: 15px; }
 .pc-wt-dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
 .pc-diff-up { color: var(--red); }
 .pc-diff-dn { color: var(--green); }
-.pc-daily-wrap { position: relative; height: 240px; }
+.pc-daily-wrap { position: relative; height: 180px; }
 
 /* 行4: 異常日一覧 + バブルチャート + 面談アドバイス */
 .pc-row4 {
   display: grid;
   grid-template-columns: 2fr 1.4fr 1.6fr;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
-.pc-anomaly-wrap { overflow-x: auto; max-height: 260px; overflow-y: auto; }
+.pc-anomaly-wrap { overflow-x: auto; max-height: 200px; overflow-y: auto; }
 .pc-anomaly-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .pc-anomaly-table th { color: var(--text-sub); font-weight: 600; padding: 5px 6px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; position: sticky; top: 0; background: var(--bg2); }
 .pc-anomaly-table td { color: var(--text); padding: 5px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -514,10 +549,10 @@ body { font-size: 15px; }
 .pc-anomaly-orange { color: var(--orange) !important; font-weight: 600; }
 .pc-anomaly-yellow { color: var(--yellow) !important; font-weight: 600; }
 .pc-anomaly-memo   { color: var(--text-sub); font-size: 11px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
-.pc-bubble-wrap { position: relative; height: 260px; }
+.pc-bubble-wrap { position: relative; height: 180px; }
 
-.pc-advice-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-.pc-advice-item { padding: 8px 10px; background: var(--bg); border-radius: 6px; }
+.pc-advice-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; }
+.pc-advice-item { padding: 5px 8px; background: var(--bg); border-radius: 6px; }
 .pc-advice-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
 .pc-advice-text  { font-size: 11px; color: var(--text-sub); line-height: 1.4; }
 .pc-next-action-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
