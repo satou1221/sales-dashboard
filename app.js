@@ -1187,16 +1187,26 @@ function renderDeptScoreTable() {
 // ============================================================
 // 個人別分析タブ
 // ============================================================
+// 個人別分析タブ
+// ============================================================
 function renderPersonalTab() {
   const deptFilter = document.getElementById('personal-dept-filter').value;
   const members = getMembers().filter(m => deptFilter==='all' || m.dept===deptFilter);
 
   const sel = document.getElementById('personal-member-filter');
+  const prev = sel.value;
   sel.innerHTML = '<option value="">-- 選択 --</option>'
     + members.map(m=>`<option value="${m.empId}">${m.name}</option>`).join('');
+  if (prev) sel.value = prev;
 
   renderPersonalCompareChart(members);
-  document.getElementById('personal-detail-row').style.display = 'none';
+
+  if (sel.value) {
+    renderPersonalDetail();
+  } else {
+    document.getElementById('personal-compare-section').style.display = 'block';
+    document.getElementById('personal-detail-section').style.display  = 'none';
+  }
 }
 
 function renderPersonalCompareChart(members) {
@@ -1204,100 +1214,488 @@ function renderPersonalCompareChart(members) {
   destroyChart('personal-compare');
   if (!members || members.length === 0) return;
 
-  const datasets = [
-    { label:'通常業務', data: members.map(m=>{ const s=getMemberStats(m.empId); return Math.round((s.totalMin-s.otMin)/60*10)/10; }), backgroundColor:'#4f8ef7', borderWidth:0 },
-    { label:'時間外',   data: members.map(m=>{ const s=getMemberStats(m.empId); return Math.round(s.otMin/60*10)/10; }), backgroundColor:'#e74c3c', borderWidth:0 },
-    { label:'休暇中業務',data: members.map(m=>{ const s=getMemberStats(m.empId); return Math.round(s.vacMin/60*10)/10; }), backgroundColor:'#f39c12', borderWidth:0 },
-  ];
+  const barH = Math.max(40, Math.min(60, Math.floor(400 / (members.length || 1))));
+  const canvasEl = document.getElementById('chart-personal-compare');
+  canvasEl.parentElement.style.height = (members.length * barH + 80) + 'px';
+
+  const wm = loadSettings().workMaster;
+  const datasets = wm.map(wt => ({
+    label: wt.name,
+    data: members.map(m => {
+      const s = getMemberStats(m.empId);
+      return Math.round((s.byType[wt.name] || 0) / 60 * 10) / 10;
+    }),
+    backgroundColor: wt.color,
+    borderWidth: 0,
+  }));
+  // 時間外を追加
+  datasets.push({
+    label: '時間外',
+    data: members.map(m => { const s = getMemberStats(m.empId); return Math.round(s.otMin/60*10)/10; }),
+    backgroundColor: '#e74c3c',
+    borderWidth: 0,
+  });
+
   chartInstances['personal-compare'] = new Chart(ctx, {
     type: 'bar',
     data: { labels: members.map(m=>m.name), datasets },
     options: {
       indexAxis: 'y',
-      responsive:true, maintainAspectRatio:false,
+      responsive: true, maintainAspectRatio: false,
       scales: {
-        x: { stacked:true, ticks:{ color:'#c0c8e0', font:{size:12} }, grid:{ color:'#2e3350' } },
+        x: { stacked:true, ticks:{ color:'#c0c8e0', font:{size:12} }, grid:{ color:'#2e3350' }, title:{ display:true, text:'時間', color:'#8892b0' } },
         y: { stacked:true, ticks:{ color:'#e8eaf6', font:{size:13} }, grid:{ color:'#2e3350' } }
       },
-      plugins: { legend:{ labels:{ color:'#c0c8e0', font:{size:12} } } }
+      plugins: { legend:{ labels:{ color:'#c0c8e0', font:{size:11}, boxWidth:12 } } }
     }
   });
 }
 
 function renderPersonalDetail() {
   const empId = document.getElementById('personal-member-filter').value;
-  if (!empId) { document.getElementById('personal-detail-row').style.display='none'; return; }
-  document.getElementById('personal-detail-row').style.display='flex';
+  if (!empId) {
+    document.getElementById('personal-compare-section').style.display = 'block';
+    document.getElementById('personal-detail-section').style.display  = 'none';
+    return;
+  }
+  document.getElementById('personal-compare-section').style.display = 'none';
+  document.getElementById('personal-detail-section').style.display  = 'block';
 
   const member = getMembers().find(m=>m.empId===empId);
   if (!member) return;
 
-  const sc = calculateScores(empId);
-  const bd = sc.breakdown;
-  const st = getMemberStats(empId);
-  const reason = buildRiskReason(empId);
+  const sc  = calculateScores(empId);
+  const bd  = sc.breakdown;
+  const st  = getMemberStats(empId);
+  const cfg = loadSettings().scoreConfig;
   const col = lvColor(sc.riskLevel);
+  const recs = allRecords.filter(r=>r.empId===empId);
+  const dates = [...new Set(recs.map(r=>r.date))].sort();
+  const workDayCount = Math.max(dates.length, 1);
 
-  document.getElementById('personal-detail-name').textContent = `${member.name} 業務区分内訳`;
+  // ---- 行1: スコアカード + KPI ----
+  // スコアカード
+  document.getElementById('pc-score-val').textContent  = sc.score;
+  document.getElementById('pc-score-val').style.color  = col;
+  const lvBadge = document.getElementById('pc-lv-badge');
+  lvBadge.textContent = `Lv.${sc.riskLevel} ${lvLabel(sc.riskLevel)}`;
+  lvBadge.style.background = col;
+  document.getElementById('pc-score-sub').textContent = '前月比 --（データなし）';
+  document.getElementById('pc-score-total-label').textContent = `合計 ${sc.score}点`;
 
-  // スコアサマリー
-  const scoreEl = document.getElementById('personal-score-summary');
-  if (scoreEl) {
-    scoreEl.innerHTML = `
-      <div class="personal-score-header">
-        <span class="personal-score-val" style="color:${col}">${sc.score}</span>
-        <span class="personal-score-lv" style="color:${col}">Lv.${sc.riskLevel} ${lvLabel(sc.riskLevel)}</span>
-      </div>
-      <div class="personal-score-breakdown">
-        <div class="bd-row"><span>休暇中業務</span><span>${bd.vac.days}日 / ${bd.vac.hours}h → ${bd.vac.pt}pt</span></div>
-        <div class="bd-row"><span>休憩0分</span><span>${bd.break0.days}日 → ${bd.break0.pt}pt</span></div>
-        <div class="bd-row"><span>時間外（60-89分）</span><span>${bd.ot.d60}日 → ${bd.ot.d60 * loadSettings().scoreConfig.ot60Pt}pt</span></div>
-        <div class="bd-row"><span>時間外（90-119分）</span><span>${bd.ot.d90}日 → ${bd.ot.d90 * loadSettings().scoreConfig.ot90Pt}pt</span></div>
-        <div class="bd-row"><span>時間外（120分以上）</span><span>${bd.ot.d120}日 → ${bd.ot.d120 * loadSettings().scoreConfig.ot120Pt}pt</span></div>
-        <div class="bd-row"><span>休憩21〜35分</span><span>${bd.breakShort.d21}日 → ${bd.breakShort.d21 * loadSettings().scoreConfig.break21Pt}pt</span></div>
-        <div class="bd-row"><span>休憩1〜20分</span><span>${bd.breakShort.d1}日 → ${bd.breakShort.d1 * loadSettings().scoreConfig.break1Pt}pt</span></div>
-        <div class="bd-row"><span>複合条件</span><span>${bd.comp.pt}pt</span></div>
-        <div class="bd-row bd-total"><span>合計</span><span style="color:${col};font-weight:bold">${sc.score}pt</span></div>
-      </div>
-      <div class="personal-reason">主な要因：${reason}</div>`;
-  }
+  // KPI: 総業務時間/営業日
+  const totalH = Math.round(st.totalMin / workDayCount / 60 * 10) / 10;
+  document.getElementById('pc-kpi-total').textContent = `${totalH}h`;
+  document.getElementById('pc-kpi-total-sub').textContent = '前月比 --';
 
-  // 業務区分パイチャート
+  // KPI: 時間外/営業日
+  const otH = Math.round(st.otMin / workDayCount / 60 * 10) / 10;
+  document.getElementById('pc-kpi-ot').textContent = `${otH}h`;
+  document.getElementById('pc-kpi-ot-sub').textContent = '前月比 --';
+
+  // KPI: 休暇中業務時間/月
+  const vacH = Math.round(st.vacMin / 60 * 10) / 10;
+  document.getElementById('pc-kpi-vac').textContent = `${vacH}h`;
+  document.getElementById('pc-kpi-vac-sub').textContent = '前月比 --';
+
+  // KPI: 1日平均休憩時間
+  const breakAvgMin = Math.round(st.breakMin / workDayCount);
+  document.getElementById('pc-kpi-break').textContent = `${breakAvgMin}分`;
+  document.getElementById('pc-kpi-break-sub').textContent = '前月比 --';
+
+  // KPI: 休憩中業務時間/月
+  const partyH = Math.round(st.partyMin / 60 * 10) / 10;
+  document.getElementById('pc-kpi-party').textContent = `${partyH}h`;
+  document.getElementById('pc-kpi-party-sub').textContent = '前月比 --';
+
+  // ---- 行2: スコア内訳横棒グラフ ----
+  renderPcScoreBar(bd, cfg, sc.score);
+
+  // ---- 行2: 主な負荷要因 ----
+  renderPcFactorList(bd, cfg);
+
+  // ---- 行2: 面談用サマリー ----
+  renderPcSummary(empId, member, sc, bd, st);
+
+  // ---- 行3: 業務区分別分析 ----
+  renderPcWorktypePie(st);
+  renderPcWorktypeTable(empId, st);
+
+  // ---- 行3: 日別負荷推移 ----
+  renderPcDailyChart(empId, recs, dates);
+
+  // ---- 行4: 異常日一覧 ----
+  renderPcAnomalyTable(empId, recs);
+
+  // ---- 行4: 業務区分×貢献度バブルチャート ----
+  renderPcBubbleChart(st);
+
+  // ---- 行4: 個人面談アドバイス ----
+  renderPcAdvice(empId, sc, bd, st);
+}
+
+// ---- スコア内訳横棒グラフ ----
+function renderPcScoreBar(bd, cfg, totalScore) {
+  const ctx = document.getElementById('chart-pc-score-bar').getContext('2d');
+  destroyChart('pc-score-bar');
+  const labels = ['休暇中業務', '時間外90分超', '休憩0分率', '休憩35分以下', '複合条件', '月間時間外累計'];
+  const data   = [
+    bd.vac.pt,
+    Math.round(bd.ot.d90 * cfg.ot90Pt + bd.ot.d120 * cfg.ot120Pt),
+    bd.break0.pt,
+    bd.breakShort.pt,
+    bd.comp.pt,
+    Math.round(bd.ot.monthMin >= 30*60 ? cfg.otMonth30Pt : bd.ot.monthMin >= 20*60 ? cfg.otMonth20Pt : 0),
+  ];
+  const colors = ['#e74c3c','#e67e22','#f1c40f','#3498db','#9b59b6','#1abc9c'];
+  chartInstances['pc-score-bar'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: colors, borderWidth: 0 }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { ticks:{ color:'#c0c8e0', font:{size:11} }, grid:{ color:'#2e3350' } },
+        y: { ticks:{ color:'#e8eaf6', font:{size:12} }, grid:{ color:'#2e3350' } }
+      },
+      plugins: {
+        legend: { display: false },
+        datalabels: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}点` } }
+      }
+    }
+  });
+}
+
+// ---- 主な負荷要因リスト ----
+function renderPcFactorList(bd, cfg) {
+  const ul = document.getElementById('pc-factor-list');
+  const items = [];
+  const COLORS = { red:'#e74c3c', orange:'#e67e22', yellow:'#f1c40f', blue:'#4f8ef7', purple:'#9b59b6' };
+
+  if (bd.vac.days >= 1) items.push({ color: COLORS.red,    text: `休日対応が${bd.vac.days}日発生` });
+  if (bd.ot.d90 >= 1)  items.push({ color: COLORS.orange,  text: `時間外90分超が${bd.ot.d90 + bd.ot.d120}日` });
+  if (bd.break0.days >= 1) items.push({ color: COLORS.yellow, text: `休憩0分が${bd.break0.days}日` });
+  if (bd.breakShort.d21 + bd.breakShort.d1 >= 1) items.push({ color: COLORS.blue, text: `休憩35分以下が${bd.breakShort.d21 + bd.breakShort.d1}日` });
+  if (bd.comp.c3Break >= 1) items.push({ color: COLORS.purple, text: `休憩不足3日連続 ${bd.comp.c3Break}回` });
+  if (bd.comp.c3Ot >= 1)    items.push({ color: COLORS.purple, text: `残業90分超3日連続 ${bd.comp.c3Ot}回` });
+  if (bd.ot.monthMin >= 30*60) items.push({ color: COLORS.orange, text: '月間時間外が基準値を超過' });
+  else if (bd.ot.monthMin >= 20*60) items.push({ color: COLORS.yellow, text: '月間時間外が20時間超' });
+
+  if (items.length === 0) items.push({ color: '#2ecc71', text: '特記事項なし' });
+
+  ul.innerHTML = items.map(it =>
+    `<li class="pc-factor-item"><span class="pc-factor-dot" style="background:${it.color}"></span>${it.text}</li>`
+  ).join('');
+}
+
+// ---- 面談用サマリー ----
+function renderPcSummary(empId, member, sc, bd, st) {
+  const el = document.getElementById('pc-summary-list');
+  const wm = loadSettings().workMaster;
   const sorted = Object.entries(st.byType).sort((a,b)=>b[1]-a[1]);
-  const ctxPie = document.getElementById('chart-personal-pie').getContext('2d');
-  destroyChart('personal-pie');
-  chartInstances['personal-pie'] = new Chart(ctxPie, {
+  const topWork = sorted[0] ? sorted[0][0] : '—';
+  const topWorkH = sorted[0] ? Math.round(sorted[0][1]/60*10)/10 : 0;
+
+  const items = [
+    { icon:'★', label:'今月の特徴',         text: `${topWork}が最多（${topWorkH}h）。${bd.vac.days>0?'休日対応あり。':''}${bd.ot.d90+bd.ot.d120>0?'時間外90分超が'+( bd.ot.d90+bd.ot.d120)+'日。':''}` },
+    { icon:'↑', label:'前月から増えた業務',   text: '前月データがないため比較不可' },
+    { icon:'↻', label:'繰り返し発生している問題', text: [
+        bd.break0.days >= 2 ? `休憩0分が${bd.break0.days}日` : null,
+        bd.comp.c3Ot >= 1   ? `残業90分超3日連続 ${bd.comp.c3Ot}回` : null,
+        bd.comp.c3Break >= 1 ? `休憩不足3日連続 ${bd.comp.c3Break}回` : null,
+      ].filter(Boolean).join('、') || '特記なし' },
+    { icon:'📋', label:'来月の確認事項',      text: [
+        bd.vac.days >= 1   ? '休日対応ルールの確認' : null,
+        bd.break0.days >= 1 ? '休憩確保の徹底' : null,
+        bd.ot.d90 + bd.ot.d120 >= 3 ? '業務量・分担の見直し' : null,
+      ].filter(Boolean).join('、') || '特記なし' },
+  ];
+
+  el.innerHTML = items.map(it =>
+    `<div class="pc-summary-item">
+       <span class="pc-summary-icon">${it.icon}</span>
+       <div class="pc-summary-body">
+         <span class="pc-summary-label">${it.label}</span>
+         <span class="pc-summary-text">${it.text}</span>
+       </div>
+     </div>`
+  ).join('');
+}
+
+// ---- 業務区分別ドーナツグラフ ----
+function renderPcWorktypePie(st) {
+  const sorted = Object.entries(st.byType).sort((a,b)=>b[1]-a[1]);
+  const totalH = Math.round(st.totalMin/60*10)/10;
+  const ctx = document.getElementById('chart-pc-worktype-pie').getContext('2d');
+  destroyChart('pc-worktype-pie');
+  if (sorted.length === 0) return;
+
+  document.getElementById('pc-worktype-center').innerHTML =
+    `<div class="pc-pie-center-label">今月合計</div><div class="pc-pie-center-val">${totalH}h</div>`;
+
+  chartInstances['pc-worktype-pie'] = new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels: sorted.map(([k])=>k),
-      datasets: [{ data: sorted.map(([,v])=>Math.round(v/60*10)/10), backgroundColor: sorted.map(([k])=>getWorkColor(k)), borderWidth:0 }]
+      datasets: [{ data: sorted.map(([,v])=>Math.round(v/60*10)/10), backgroundColor: sorted.map(([k])=>getWorkColor(k)), borderWidth: 0 }]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ color:'#c0c8e0', font:{size:12}, boxWidth:12 } } } }
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '65%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}h (${Math.round(ctx.raw/totalH*100)}%)` } }
+      }
+    }
+  });
+}
+
+// ---- 業務区分別テーブル ----
+function renderPcWorktypeTable(empId, st) {
+  const tbody = document.getElementById('pc-worktype-tbody');
+  const wm = loadSettings().workMaster;
+  const totalMin = st.totalMin || 1;
+  const sorted = Object.entries(st.byType).sort((a,b)=>b[1]-a[1]);
+
+  // 部門平均計算
+  const member = getMembers().find(m=>m.empId===empId);
+  const deptMembers = member ? getMembers().filter(m=>m.dept===member.dept && m.empId!==empId) : [];
+  const deptAvgByType = {};
+  if (deptMembers.length > 0) {
+    deptMembers.forEach(m => {
+      const s = getMemberStats(m.empId);
+      Object.entries(s.byType).forEach(([k,v]) => { deptAvgByType[k] = (deptAvgByType[k]||0) + v; });
+    });
+    Object.keys(deptAvgByType).forEach(k => { deptAvgByType[k] = deptAvgByType[k] / deptMembers.length; });
+  }
+
+  tbody.innerHTML = sorted.map(([name, min]) => {
+    const h = Math.round(min/60*10)/10;
+    const pct = Math.round(min/totalMin*100*10)/10;
+    const deptAvgH = deptAvgByType[name] ? Math.round(deptAvgByType[name]/60*10)/10 : null;
+    const diffH = deptAvgH !== null ? Math.round((h - deptAvgH)*10)/10 : null;
+    const diffStr = diffH !== null ? (diffH >= 0 ? `<span class="pc-diff-up">+${diffH}h</span>` : `<span class="pc-diff-dn">${diffH}h</span>`) : '—';
+    const color = getWorkColor(name);
+    // 負荷要因判定
+    const wt = wm.find(w=>w.name===name);
+    const importance = wt ? wt.importance : 0;
+    let factor = '—';
+    if (diffH !== null && diffH > 2) factor = `<span style="color:#e74c3c">負荷高・集中</span>`;
+    else if (importance >= 15 && pct >= 30) factor = `<span style="color:#e67e22">主力業務</span>`;
+    return `<tr>
+      <td><span class="pc-wt-dot" style="background:${color}"></span>${name}</td>
+      <td>${h}h</td>
+      <td>${pct}%</td>
+      <td>—</td>
+      <td>${diffStr}</td>
+      <td>${factor}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ---- 日別負荷推移グラフ ----
+function renderPcDailyChart(empId, recs, dates) {
+  const ctx = document.getElementById('chart-pc-daily').getContext('2d');
+  destroyChart('pc-daily');
+  if (dates.length === 0) return;
+
+  const totalData = dates.map(d => Math.round(recs.filter(r=>r.date===d).reduce((s,r)=>s+r.normalMin+r.otMin,0)/60*10)/10);
+  const otData    = dates.map(d => Math.round(recs.filter(r=>r.date===d).reduce((s,r)=>s+r.otMin,0)/60*10)/10);
+
+  // アノテーション点（アイコン代わりにポイント色変更）
+  const pointColors = dates.map(d => {
+    const dayRecs = recs.filter(r=>r.date===d);
+    const dayBreak = dayRecs.reduce((s,r)=>s+r.breakMin,0);
+    const dayOt    = dayRecs.reduce((s,r)=>s+r.otMin,0);
+    const dayVac   = dayRecs.reduce((s,r)=>s+r.vacationMin,0);
+    if (dayVac > 0)    return '#f39c12';
+    if (dayBreak === 0) return '#e74c3c';
+    if (dayOt >= 90)   return '#e67e22';
+    if (dayBreak <= 35) return '#f1c40f';
+    return '#4f8ef7';
   });
 
-  // 日別折れ線（業務時間 + 時間外）
-  const recs  = allRecords.filter(r=>r.empId===empId);
-  const dates = [...new Set(recs.map(r=>r.date))].sort();
-  const ctxLine = document.getElementById('chart-personal-daily').getContext('2d');
-  destroyChart('personal-daily');
-  chartInstances['personal-daily'] = new Chart(ctxLine, {
-    type: 'line',
+  const shortDates = dates.map(d => { const [,m,day] = d.split('-'); return `${parseInt(m)}/${parseInt(day)}`; });
+
+  chartInstances['pc-daily'] = new Chart(ctx, {
+    type: 'bar',
     data: {
-      labels: dates,
+      labels: shortDates,
       datasets: [
-        { label:'総業務時間(h)', data: dates.map(d=>Math.round(recs.filter(r=>r.date===d).reduce((s,r)=>s+r.normalMin+r.otMin,0)/60*10)/10), borderColor:'#4f8ef7', backgroundColor:'rgba(79,142,247,0.1)', fill:true, tension:0.3, pointRadius:3 },
-        { label:'時間外(h)',     data: dates.map(d=>Math.round(recs.filter(r=>r.date===d).reduce((s,r)=>s+r.otMin,0)/60*10)/10), borderColor:'#e74c3c', backgroundColor:'rgba(231,76,60,0.1)', fill:false, tension:0.3, pointRadius:3 },
+        { type:'bar',  label:'総業務時間(h)', data: totalData, backgroundColor:'rgba(79,142,247,0.6)', yAxisID:'y', order:2 },
+        { type:'line', label:'時間外(h)',     data: otData, borderColor:'#e74c3c', backgroundColor:'rgba(231,76,60,0.1)', fill:false, tension:0.3, pointRadius:5, pointBackgroundColor: pointColors, yAxisID:'y2', order:1 },
       ]
     },
     options: {
-      responsive:true, maintainAspectRatio:false,
+      responsive: true, maintainAspectRatio: false,
       scales: {
-        x: { ticks:{ color:'#c0c8e0', maxTicksLimit:12, font:{size:11} }, grid:{ color:'#2e3350' } },
-        y: { ticks:{ color:'#c0c8e0', font:{size:12} }, grid:{ color:'#2e3350' } }
+        x:  { ticks:{ color:'#c0c8e0', font:{size:10}, maxRotation:45 }, grid:{ color:'#2e3350' } },
+        y:  { position:'left',  ticks:{ color:'#c0c8e0', font:{size:11} }, grid:{ color:'#2e3350' }, title:{ display:true, text:'総業務(h)', color:'#8892b0', font:{size:10} } },
+        y2: { position:'right', ticks:{ color:'#e74c3c', font:{size:11} }, grid:{ display:false }, title:{ display:true, text:'時間外(h)', color:'#e74c3c', font:{size:10} } },
       },
-      plugins: { legend:{ labels:{ color:'#c0c8e0', font:{size:12} } } }
+      plugins: {
+        legend: { labels:{ color:'#c0c8e0', font:{size:11}, boxWidth:12 } },
+        tooltip: { mode:'index', intersect:false }
+      }
     }
   });
+}
+
+// ---- 異常日一覧 ----
+function renderPcAnomalyTable(empId, recs) {
+  const tbody = document.getElementById('pc-anomaly-tbody');
+  const dayMap = {};
+  recs.forEach(r => {
+    if (!dayMap[r.date]) dayMap[r.date] = { totalMin:0, otMin:0, vacMin:0, breakMin:0, workTypes:[], memos:[], dow:r.dow };
+    dayMap[r.date].totalMin  += r.normalMin + r.otMin;
+    dayMap[r.date].otMin     += r.otMin;
+    dayMap[r.date].vacMin    += r.vacationMin;
+    dayMap[r.date].breakMin  += r.breakMin;
+    if (r.workType && !dayMap[r.date].workTypes.includes(r.workType)) dayMap[r.date].workTypes.push(r.workType);
+    if (r.memo) dayMap[r.date].memos.push(r.memo);
+  });
+
+  const anomalies = Object.entries(dayMap)
+    .filter(([,d]) => d.otMin >= 90 || d.vacMin > 0 || d.breakMin === 0 || d.breakMin <= 35)
+    .sort((a,b) => a[0] < b[0] ? 1 : -1)
+    .slice(0, 8);
+
+  if (anomalies.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#8892b0">異常日なし</td></tr>';
+    return;
+  }
+
+  const DOW_JA = { Mon:'月', Tue:'火', Wed:'水', Thu:'木', Fri:'金', Sat:'土', Sun:'日' };
+  tbody.innerHTML = anomalies.map(([date, d]) => {
+    const [,m,day] = date.split('-');
+    const dow = DOW_JA[d.dow] || d.dow || '';
+    const totalH = Math.round(d.totalMin/60*10)/10;
+    const otH    = Math.round(d.otMin/60*10)/10;
+    const vacH   = Math.round(d.vacMin/60*10)/10;
+    const breakM = d.breakMin;
+    const otClass  = d.otMin >= 90 ? 'pc-anomaly-red' : '';
+    const vacClass = d.vacMin > 0  ? 'pc-anomaly-orange' : '';
+    const brClass  = d.breakMin === 0 ? 'pc-anomaly-red' : d.breakMin <= 35 ? 'pc-anomaly-yellow' : '';
+    const memo = d.memos.join(' / ') || '—';
+    return `<tr>
+      <td>${parseInt(m)}/${parseInt(day)}（${dow}）</td>
+      <td>${totalH}h</td>
+      <td class="${otClass}">${otH}h</td>
+      <td class="${vacClass}">${vacH > 0 ? vacH+'h' : '0h'}</td>
+      <td class="${brClass}">${breakM}分</td>
+      <td>${d.workTypes.join('/')}</td>
+      <td class="pc-anomaly-memo">${memo}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ---- 業務区分×貢献度バブルチャート ----
+function renderPcBubbleChart(st) {
+  const ctx = document.getElementById('chart-pc-bubble').getContext('2d');
+  destroyChart('pc-bubble');
+  const wm = loadSettings().workMaster;
+  const totalMin = st.totalMin || 1;
+
+  const bubbleData = wm
+    .filter(wt => st.byType[wt.name] && st.byType[wt.name] > 0)
+    .map(wt => {
+      const min = st.byType[wt.name] || 0;
+      const h   = Math.round(min/60*10)/10;
+      const pct = Math.round(min/totalMin*100);
+      return {
+        label: wt.name,
+        data: [{ x: h, y: wt.importance, r: Math.max(6, Math.min(30, Math.sqrt(h) * 4)) }],
+        backgroundColor: wt.color + 'aa',
+        borderColor: wt.color,
+        borderWidth: 2,
+      };
+    });
+
+  chartInstances['pc-bubble'] = new Chart(ctx, {
+    type: 'bubble',
+    data: { datasets: bubbleData },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { title:{ display:true, text:'業務負荷・時間(h)', color:'#8892b0', font:{size:11} }, ticks:{ color:'#c0c8e0', font:{size:11} }, grid:{ color:'#2e3350' } },
+        y: { title:{ display:true, text:'会社貢献度（重要度）', color:'#8892b0', font:{size:11} }, ticks:{ color:'#c0c8e0', font:{size:11} }, grid:{ color:'#2e3350' }, min:0, max:100 },
+      },
+      plugins: {
+        legend: { labels:{ color:'#c0c8e0', font:{size:10}, boxWidth:10 } },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw.x}h / 重要度${ctx.raw.y}` } }
+      }
+    }
+  });
+
+  // 4象限ラベルをCSSで追加（canvas上に直接描画）
+  const chart = chartInstances['pc-bubble'];
+  if (chart) {
+    const origDraw = chart.draw.bind(chart);
+    chart.draw = function() {
+      origDraw();
+      const c = chart.ctx;
+      const xScale = chart.scales.x;
+      const yScale = chart.scales.y;
+      const xMid = xScale.getPixelForValue((xScale.max + xScale.min) / 2);
+      const yMid = yScale.getPixelForValue((yScale.max + yScale.min) / 2);
+      c.save();
+      c.font = '10px sans-serif';
+      c.fillStyle = 'rgba(200,200,200,0.4)';
+      c.fillText('高貢献・低負荷', xScale.left + 4, yScale.top + 14);
+      c.fillText('高貢献・高負荷', xMid + 4,        yScale.top + 14);
+      c.fillText('低貢献・低負荷', xScale.left + 4, yMid + 14);
+      c.fillText('低貢献・高負荷', xMid + 4,        yMid + 14);
+      c.restore();
+    };
+  }
+}
+
+// ---- 個人面談アドバイス ----
+function renderPcAdvice(empId, sc, bd, st) {
+  const adviceEl = document.getElementById('pc-advice-list');
+  const nextEl   = document.getElementById('pc-next-action-items');
+  const advices  = [];
+  const nextActions = [];
+
+  // アドバイス生成ロジック
+  if (bd.vac.days >= 2) {
+    advices.push({ icon:'👥', color:'#e74c3c', title:'休日対応ルールの見直し', text:`休日対応が${bd.vac.days}日発生。対応基準と代替体制を明確化しましょう。` });
+    nextActions.push('休日対応ルールをチームで再確認');
+  }
+  if (bd.ot.d90 + bd.ot.d120 >= 3) {
+    advices.push({ icon:'📊', color:'#e67e22', title:'時間外集中の分散化', text:`時間外90分超が${bd.ot.d90+bd.ot.d120}日。業務の分担・引き継ぎを見直しましょう。` });
+    nextActions.push('月次計画に前倒しタスクを設定');
+  }
+  if (bd.break0.days >= 2) {
+    advices.push({ icon:'☕', color:'#f1c40f', title:'休憩確保の徹底', text:`休憩0分が${bd.break0.days}日。業務過多のサインです。計画的な休憩を確保しましょう。` });
+    nextActions.push('休憩0分日の業務内容を確認・改善');
+  }
+  if (bd.breakShort.d21 + bd.breakShort.d1 >= 3) {
+    advices.push({ icon:'⚠️', color:'#3498db', title:'月末集中業務の前倒し', text:'月末に業務が集中するパターンが見られます。前倒し計画を検討しましょう。' });
+    nextActions.push('低貢献・高負荷業務の改善案を検討');
+  }
+
+  if (advices.length === 0) {
+    advices.push({ icon:'✅', color:'#2ecc71', title:'良好な状態です', text:'今月は特記すべき負荷要因がありません。引き続き現在のペースを維持しましょう。' });
+  }
+  if (nextActions.length === 0) {
+    nextActions.push('現状維持・引き続き状況を観察');
+  }
+
+  adviceEl.innerHTML = advices.map(a =>
+    `<div class="pc-advice-item" style="border-left:3px solid ${a.color}">
+       <div class="pc-advice-title">${a.icon} ${a.title}</div>
+       <div class="pc-advice-text">${a.text}</div>
+     </div>`
+  ).join('');
+
+  nextEl.innerHTML = nextActions.map(a =>
+    `<label class="pc-next-item"><input type="checkbox"> ${a}</label>`
+  ).join('');
 }
 
 // ============================================================

@@ -354,36 +354,204 @@
 
     <!-- ===== 個人別分析タブ ===== -->
     <div id="tab-personal" class="tab-content">
-      <div class="filter-bar">
-        <label>部門：
-          <select id="personal-dept-filter" onchange="renderPersonalTab()">
-            <option value="all">全員</option>
-            <option value="営業部本社">営業部本社</option>
-            <option value="営業部福岡支社">営業部福岡支社</option>
-          </select>
-        </label>
-        <label>メンバー：
-          <select id="personal-member-filter" onchange="renderPersonalDetail()">
-            <option value="">-- 選択 --</option>
-          </select>
-        </label>
+
+      <!-- フィルターバー -->
+      <div class="personal-filter-bar">
+        <span class="personal-filter-label">部門：</span>
+        <select id="personal-dept-filter" class="personal-select" onchange="renderPersonalTab()">
+          <option value="all">全員</option>
+          <option value="営業部本社">営業部本社</option>
+          <option value="営業部福岡支社">営業部福岡支社</option>
+        </select>
+        <span class="personal-filter-label">メンバー：</span>
+        <select id="personal-member-filter" class="personal-select" onchange="renderPersonalDetail()">
+          <option value="">-- 選択 --</option>
+        </select>
       </div>
-      <div class="chart-row">
+
+      <!-- メンバー未選択時：全員比較グラフ -->
+      <div id="personal-compare-section">
         <div class="chart-card full-width">
           <div class="chart-header"><h3>個人別 業務時間比較</h3></div>
           <div class="chart-body chart-body-lg"><canvas id="chart-personal-compare"></canvas></div>
         </div>
       </div>
-      <div class="chart-row" id="personal-detail-row" style="display:none">
-        <div class="chart-card half-width">
-          <div class="chart-header"><h3 id="personal-detail-name">-- 業務区分内訳</h3></div>
-          <div class="chart-body"><canvas id="chart-personal-pie"></canvas></div>
+
+      <!-- メンバー選択時：個人スコアカード詳細 -->
+      <div id="personal-detail-section" style="display:none">
+
+        <!-- 行1: スコアカード + KPI6枚 -->
+        <div class="pc-row pc-row-kpi">
+          <!-- 業務負荷スコアカード -->
+          <div class="pc-score-card" id="pc-score-card">
+            <div class="pc-score-icon">📊</div>
+            <div class="pc-score-body">
+              <div class="pc-score-label">業務負荷スコア</div>
+              <div class="pc-score-main">
+                <span class="pc-score-val" id="pc-score-val">--</span>
+                <span class="pc-score-unit">点</span>
+                <span class="pc-lv-badge" id="pc-lv-badge">Lv.--</span>
+              </div>
+              <div class="pc-score-sub" id="pc-score-sub">前月比 --</div>
+            </div>
+          </div>
+          <!-- KPI: 総業務時間/営業日 -->
+          <div class="pc-kpi-card">
+            <div class="pc-kpi-icon">🕐</div>
+            <div class="pc-kpi-body">
+              <div class="pc-kpi-label">総業務時間/人/営業日</div>
+              <div class="pc-kpi-val" id="pc-kpi-total">--</div>
+              <div class="pc-kpi-sub" id="pc-kpi-total-sub">前月比 --</div>
+            </div>
+          </div>
+          <!-- KPI: 時間外/営業日 -->
+          <div class="pc-kpi-card">
+            <div class="pc-kpi-icon">⏰</div>
+            <div class="pc-kpi-body">
+              <div class="pc-kpi-label">時間外/人/営業日</div>
+              <div class="pc-kpi-val" id="pc-kpi-ot">--</div>
+              <div class="pc-kpi-sub" id="pc-kpi-ot-sub">前月比 --</div>
+            </div>
+          </div>
+          <!-- KPI: 休暇中業務時間/月 -->
+          <div class="pc-kpi-card">
+            <div class="pc-kpi-icon">📅</div>
+            <div class="pc-kpi-body">
+              <div class="pc-kpi-label">休暇中業務時間/月</div>
+              <div class="pc-kpi-val" id="pc-kpi-vac">--</div>
+              <div class="pc-kpi-sub" id="pc-kpi-vac-sub">前月比 --</div>
+            </div>
+          </div>
+          <!-- KPI: 1日平均休憩時間 -->
+          <div class="pc-kpi-card">
+            <div class="pc-kpi-icon">☕</div>
+            <div class="pc-kpi-body">
+              <div class="pc-kpi-label">1日平均休憩時間</div>
+              <div class="pc-kpi-val" id="pc-kpi-break">--</div>
+              <div class="pc-kpi-sub" id="pc-kpi-break-sub">前月比 --</div>
+            </div>
+          </div>
+          <!-- KPI: 休憩中業務時間/月 -->
+          <div class="pc-kpi-card">
+            <div class="pc-kpi-icon">💼</div>
+            <div class="pc-kpi-body">
+              <div class="pc-kpi-label">休憩中業務時間/月</div>
+              <div class="pc-kpi-val" id="pc-kpi-party">--</div>
+              <div class="pc-kpi-sub" id="pc-kpi-party-sub">前月比 --</div>
+            </div>
+          </div>
         </div>
-        <div class="chart-card half-width">
-          <div class="chart-header"><h3>日別業務時間推移</h3></div>
-          <div class="chart-body"><canvas id="chart-personal-daily"></canvas></div>
+
+        <!-- 行2: スコア内訳 + 主な負荷要因 + 面談用サマリー -->
+        <div class="pc-row pc-row-3col">
+          <!-- 業務負荷スコア内訳 -->
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <h3>業務負荷スコア内訳</h3>
+              <span class="pc-card-total" id="pc-score-total-label">合計 --点</span>
+            </div>
+            <div class="pc-card-body">
+              <canvas id="chart-pc-score-bar" style="max-height:200px"></canvas>
+            </div>
+          </div>
+          <!-- 主な負荷要因 -->
+          <div class="pc-card">
+            <div class="pc-card-header"><h3>主な負荷要因</h3></div>
+            <div class="pc-card-body">
+              <ul class="pc-factor-list" id="pc-factor-list"></ul>
+            </div>
+          </div>
+          <!-- 面談用サマリー -->
+          <div class="pc-card">
+            <div class="pc-card-header"><h3>面談用サマリー</h3></div>
+            <div class="pc-card-body">
+              <div class="pc-summary-list" id="pc-summary-list"></div>
+            </div>
+          </div>
         </div>
-      </div>
+
+        <!-- 行3: 業務区分別分析 + 日別負荷推移 -->
+        <div class="pc-row pc-row-2col-wide">
+          <!-- 業務区分別分析 -->
+          <div class="pc-card">
+            <div class="pc-card-header"><h3>業務区分別分析</h3></div>
+            <div class="pc-card-body pc-worktype-body">
+              <div class="pc-worktype-chart">
+                <canvas id="chart-pc-worktype-pie"></canvas>
+                <div class="pc-worktype-center" id="pc-worktype-center"></div>
+              </div>
+              <div class="pc-worktype-table-wrap">
+                <table class="pc-worktype-table">
+                  <thead>
+                    <tr>
+                      <th>業務区分</th>
+                      <th>今時間</th>
+                      <th>構成比</th>
+                      <th>前月比</th>
+                      <th>部門平均との差</th>
+                      <th>負荷要因</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pc-worktype-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <!-- 日別負荷推移 -->
+          <div class="pc-card">
+            <div class="pc-card-header"><h3>日別負荷推移</h3></div>
+            <div class="pc-card-body">
+              <div style="height:240px"><canvas id="chart-pc-daily"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 行4: 異常日一覧 + バブルチャート + 面談アドバイス -->
+        <div class="pc-row pc-row-3col-bottom">
+          <!-- 異常日一覧 -->
+          <div class="pc-card">
+            <div class="pc-card-header"><h3>異常日一覧</h3></div>
+            <div class="pc-card-body">
+              <table class="pc-anomaly-table">
+                <thead>
+                  <tr>
+                    <th>日付</th>
+                    <th>総業務</th>
+                    <th>時間外</th>
+                    <th>休暇中</th>
+                    <th>休憩</th>
+                    <th>業務区分</th>
+                    <th>メモ</th>
+                  </tr>
+                </thead>
+                <tbody id="pc-anomaly-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <!-- 得意先×業務区分バブルチャート -->
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <h3>得意先・案件別 貢献度×負荷</h3>
+            </div>
+            <div class="pc-card-body">
+              <div style="height:240px"><canvas id="chart-pc-bubble"></canvas></div>
+              <p class="pc-chart-note">※ バブルの大きさは今月の業務時間を表します。</p>
+            </div>
+          </div>
+          <!-- 個人面談アドバイス -->
+          <div class="pc-card">
+            <div class="pc-card-header"><h3>個人面談アドバイス</h3></div>
+            <div class="pc-card-body">
+              <div class="pc-advice-list" id="pc-advice-list"></div>
+              <div class="pc-next-actions" id="pc-next-actions">
+                <div class="pc-next-title">来月アクション</div>
+                <div id="pc-next-action-items"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /personal-detail-section -->
     </div>
 
     <!-- ===== 日別分析タブ ===== -->
