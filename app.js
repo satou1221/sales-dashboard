@@ -56,14 +56,13 @@ function getWorkColor(name) {
   return found ? found.color : '#666666';
 }
 function saveSettings() {
-  const s = {
-    otAlert:       parseInt(document.getElementById('set-ot-alert').value) || 45,
-    vacationAlert: parseInt(document.getElementById('set-vacation-alert').value) || 10,
-    breakOk:       parseInt(document.getElementById('set-break-ok').value) || 40,
-    breakWarn:     parseInt(document.getElementById('set-break-warn').value) || 1,
-  };
+  const s = loadSettings();
+  s.otAlert       = parseInt(document.getElementById('set-ot-alert').value) || 45;
+  s.vacationAlert = parseInt(document.getElementById('set-vacation-alert').value) || 10;
+  s.breakOk       = parseInt(document.getElementById('set-break-ok').value) || 40;
+  s.breakWarn     = parseInt(document.getElementById('set-break-warn').value) || 1;
   localStorage.setItem('dash_settings', JSON.stringify(s));
-  showToast('設定を保存しました');
+  showToast('アラート閾値設定を保存しました');
   renderAll();
 }
 function loadSettingsForm() {
@@ -215,6 +214,7 @@ function switchTab(name) {
   if (name === 'personal') renderPersonalTab();
   if (name === 'daily')    renderDailyTab();
   if (name === 'alert')    renderAlertTab();
+  if (name === 'settings') loadSettingsForm();
 }
 
 // ============================================================
