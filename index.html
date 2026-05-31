@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>営業部 業務時間ダッシュボード</title>
-  <link rel="stylesheet" href="style.css?v=3.0">
+  <link rel="stylesheet" href="style.css?v=4.0">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -199,7 +199,7 @@
 
       <!-- グラフ行1 -->
       <div class="chart-row">
-        <div class="chart-card chart-md">
+        <div class="chart-card worktype-card">
           <div class="chart-header">
             <h3>業務区分別比率</h3>
           </div>
@@ -207,16 +207,16 @@
             <canvas id="chart-worktype"></canvas>
           </div>
         </div>
-        <div class="chart-card chart-lg">
+        <div class="chart-card personal-card">
           <div class="chart-header">
             <h3>個人別業務時間（時間）</h3>
           </div>
-          <div class="chart-body">
+          <div class="chart-body chart-body-personal">
             <canvas id="chart-personal"></canvas>
           </div>
         </div>
         <!-- 業務負荷スコアアラートパネル -->
-        <div class="chart-card chart-sm" id="score-alert-panel">
+        <div class="chart-card score-panel-card" id="score-alert-panel">
           <div class="chart-header">
             <h3>業務負荷スコアアラート <span class="info-icon" title="業務負荷スコアに基づくリスクレベル判定">ℹ️</span></h3>
           </div>
@@ -258,7 +258,7 @@
 
       <!-- グラフ行2 -->
       <div class="chart-row">
-        <div class="chart-card chart-md">
+        <div class="chart-card dept-card">
           <div class="chart-header">
             <h3>部門比較（今月累計）</h3>
           </div>
@@ -278,13 +278,13 @@
           </div>
         </div>
         <!-- スコアアラート一覧 -->
-        <div class="chart-card chart-md">
+        <div class="chart-card alert-card">
           <div class="chart-header">
             <h3>スコアアラート一覧</h3>
           </div>
           <div class="alert-list" id="dashboard-alert-list"></div>
         </div>
-        <div class="chart-card chart-lg">
+        <div class="chart-card ot-card">
           <div class="chart-header">
             <h3>時間外・休暇中業務一覧</h3>
             <select class="chart-select" id="ot-list-filter" onchange="renderOtList()">
@@ -447,7 +447,7 @@
       <div style="display: flex; flex-direction: column; gap: 16px;">
 
         <!-- 業務区分マスター -->
-        <div class="chart-card full-width">
+        <div class="chart-card full-width" id="settings-workmaster">
           <div class="chart-header">
             <h3>🛠️ 業務区分マスター設定</h3>
             <button class="btn-save" style="padding: 6px 12px; font-size: 0.8rem;" onclick="addWorkTypeRow()">＋ 追加</button>
@@ -480,62 +480,144 @@
           </div>
         </div>
 
-        <!-- スコアリング設定 -->
-        <div class="chart-card">
-          <div class="chart-header"><h3>⚖️ 負荷スコア重み付け設定</h3></div>
-          <div class="settings-form">
-            <div class="setting-item">
-              <label>時間外労働 (1時間あたり)</label>
-              <div class="setting-input-row">
-                <input type="number" id="weight-ot" step="0.1" min="0"> <span>pt</span>
-              </div>
-            </div>
-            <div class="setting-item">
-              <label>深夜労働 (1時間あたり)</label>
-              <div class="setting-input-row">
-                <input type="number" id="weight-late" step="0.1" min="0"> <span>pt</span>
-              </div>
-            </div>
-            <div class="setting-item">
-              <label>休憩不足 (1回あたり)</label>
-              <div class="setting-input-row">
-                <input type="number" id="weight-break" step="0.1" min="0"> <span>pt</span>
-              </div>
-            </div>
-            <div class="setting-item">
-              <label>休暇中業務 (1時間あたり)</label>
-              <div class="setting-input-row">
-                <input type="number" id="weight-vacation" step="0.1" min="0"> <span>pt</span>
-              </div>
+        <!-- スコア配点設定 -->
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <h3>⚖️ 業務負荷スコア配点設定</h3>
+            <button class="btn-reset" onclick="resetScoreConfig()">↺ デフォルトに戻す</button>
+          </div>
+          <!-- スコアの考え方（仕様書準拠） -->
+          <div class="score-concept-box">
+            <h4>スコアの考え方</h4>
+            <p>業務負荷スコアは「休暇中業務」「休憩0分」「時間外労働」「休憩不足」「複合条件」の5つの観点から加点式で算出します。スコアが高いほど業務負荷が高く、健康リスクが大きいと判断します。強制アラート条件に該当する場合は、スコアに関わらず指定レベル以上に強制判定されます。</p>
+            <div class="score-concept-table">
+              <table>
+                <thead><tr><th>観点</th><th>判定基準</th><th>考え方</th></tr></thead>
+                <tbody>
+                  <tr><td>休暇中業務</td><td>発生日数・時間数</td><td>休暇中の業務は最も重大。日数と時間の両方で加点</td></tr>
+                  <tr><td>休憩0分</td><td>休憩なしの日数</td><td>休憩ゼロは健康リスクが高い。1日ごとに加点</td></tr>
+                  <tr><td>時間外労働</td><td>60/90/120分の日数・月間合計</td><td>残業時間が長いほど高加点。月間合計も考慮</td></tr>
+                  <tr><td>休憩不足</td><td>21〜35分・1〜20分の日数</td><td>短い休憩は疲労蓄積のリスク。短いほど高加点</td></tr>
+                  <tr><td>複合条件</td><td>連続・同日重複</td><td>複数条件が重なる場合は追加加点でリスクを強調</td></tr>
+                </tbody>
+              </table>
             </div>
           </div>
-          <button class="btn-save" onclick="saveRiskWeights()">💾 重み付けを保存</button>
+          <div class="settings-score-grid">
+            <!-- 休暇中業務 -->
+            <div class="score-section">
+              <div class="score-section-title vac-color">休暇中業務</div>
+              <div class="setting-item"><label>発生日数（1日あたり）</label><div class="setting-input-row"><input type="number" id="sc-vac-day" min="0" max="999"><span>pt/日</span></div></div>
+              <div class="setting-item"><label>業務時間（1時間あたり）</label><div class="setting-input-row"><input type="number" id="sc-vac-hour" min="0" max="999" step="0.1"><span>pt/時間</span></div></div>
+            </div>
+            <!-- 休憩0分 -->
+            <div class="score-section">
+              <div class="score-section-title break0-color">休憩0分</div>
+              <div class="setting-item"><label>休憩0分の日数（1日あたり）</label><div class="setting-input-row"><input type="number" id="sc-break0" min="0" max="999"><span>pt/日</span></div></div>
+            </div>
+            <!-- 時間外労働 -->
+            <div class="score-section">
+              <div class="score-section-title ot-color">時間外労働</div>
+              <div class="setting-item"><label>残業60〜89分（1日あたり）</label><div class="setting-input-row"><input type="number" id="sc-ot60" min="0" max="999"><span>pt/日</span></div></div>
+              <div class="setting-item"><label>残業90〜119分（1日あたり）</label><div class="setting-input-row"><input type="number" id="sc-ot90" min="0" max="999"><span>pt/日</span></div></div>
+              <div class="setting-item"><label>残業120分以上（1日あたり）</label><div class="setting-input-row"><input type="number" id="sc-ot120" min="0" max="999"><span>pt/日</span></div></div>
+              <div class="setting-item"><label>月間時間外20時間以上（月次加算）</label><div class="setting-input-row"><input type="number" id="sc-ot-month20" min="0" max="999"><span>pt</span></div></div>
+              <div class="setting-item"><label>月間時間外30時間以上（月次加算）</label><div class="setting-input-row"><input type="number" id="sc-ot-month30" min="0" max="999"><span>pt</span></div></div>
+            </div>
+            <!-- 休憩不足 -->
+            <div class="score-section">
+              <div class="score-section-title break-color">休憩不足</div>
+              <div class="setting-item"><label>休憩21〜35分（1日あたり）</label><div class="setting-input-row"><input type="number" id="sc-break21" min="0" max="999"><span>pt/日</span></div></div>
+              <div class="setting-item"><label>休憩1〜20分（1日あたり）</label><div class="setting-input-row"><input type="number" id="sc-break1" min="0" max="999"><span>pt/日</span></div></div>
+            </div>
+            <!-- 複合条件 -->
+            <div class="score-section">
+              <div class="score-section-title comp-color">複合条件</div>
+              <div class="setting-item"><label>休憩35分以下3日連続（1回あたり）</label><div class="setting-input-row"><input type="number" id="sc-comp-3break" min="0" max="999"><span>pt/回</span></div></div>
+              <div class="setting-item"><label>残業90分以上3日連続（1回あたり）</label><div class="setting-input-row"><input type="number" id="sc-comp-3ot" min="0" max="999"><span>pt/回</span></div></div>
+              <div class="setting-item"><label>休憩0分かつ残業90分以上（同日）</label><div class="setting-input-row"><input type="number" id="sc-comp-b0ot" min="0" max="999"><span>pt/日</span></div></div>
+              <div class="setting-item"><label>休暇中業務かつ時間外あり（同日）</label><div class="setting-input-row"><input type="number" id="sc-comp-vacot" min="0" max="999"><span>pt/日</span></div></div>
+              <div class="setting-item"><label>休憩35分以下かつ残業90分以上（同日）</label><div class="setting-input-row"><input type="number" id="sc-comp-brot" min="0" max="999"><span>pt/日</span></div></div>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px">
+            <button class="btn-save" onclick="saveScoreConfig()">💾 スコア配点を保存</button>
+          </div>
         </div>
 
-         <div class="chart-card">
-          <div class="chart-header"><h3>⚠️ アラート閾値設定</h3></div>
-          <div class="settings-form">
-            <div class="setting-item">
-              <label>時間外アラート（月合計）</label>
-              <div class="setting-input-row">
-                <input type="number" id="set-ot-alert" min="0" max="999"> <span>時間以上で警告</span>
-              </div>
+        <!-- アラートレベル閾値設定 -->
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <h3>📊 アラートレベル閾値設定</h3>
+            <button class="btn-reset" onclick="resetLevelConfig()">↺ デフォルトに戻す</button>
+          </div>
+          <p class="settings-desc">スコアに応じてリスクレベルを判定する閾値を設定します。各レベルの「最大スコア」を設定してください。</p>
+          <div class="settings-level-grid">
+            <div class="level-item lv0-item">
+              <div class="level-badge-sm" style="background:#2ecc7122;border:1px solid #2ecc71;color:#2ecc71">Lv.0 通常</div>
+              <div class="setting-input-row"><span>0 〜</span><input type="number" id="lv-0-max" min="0" max="999"><span>pt</span></div>
             </div>
-            <div class="setting-item">
-              <label>休暇中業務アラート（月合計）</label>
-              <div class="setting-input-row">
-                <input type="number" id="set-vacation-alert" min="0" max="999"> <span>時間以上で警告</span>
-              </div>
+            <div class="level-item lv1-item">
+              <div class="level-badge-sm" style="background:#4f8ef722;border:1px solid #4f8ef7;color:#4f8ef7">Lv.1 軽注意</div>
+              <div class="setting-input-row"><span>〜</span><input type="number" id="lv-1-max" min="0" max="999"><span>pt</span></div>
             </div>
-            <div class="setting-item">
-              <label>休憩不足アラート（1日あたり）</label>
-              <div class="setting-input-row">
-                <input type="number" id="set-break-ok" min="0" max="999"> <span>分以上でOK /</span>
-                <input type="number" id="set-break-warn" min="0" max="999"> <span>分以上で不足（0分で要確認）</span>
-              </div>
+            <div class="level-item lv2-item">
+              <div class="level-badge-sm" style="background:#f1c40f22;border:1px solid #f1c40f;color:#f1c40f">Lv.2 注意</div>
+              <div class="setting-input-row"><span>〜</span><input type="number" id="lv-2-max" min="0" max="999"><span>pt</span></div>
+            </div>
+            <div class="level-item lv3-item">
+              <div class="level-badge-sm" style="background:#e67e2222;border:1px solid #e67e22;color:#e67e22">Lv.3 要確認</div>
+              <div class="setting-input-row"><span>〜</span><input type="number" id="lv-3-max" min="0" max="999"><span>pt</span></div>
+            </div>
+            <div class="level-item lv4-item">
+              <div class="level-badge-sm" style="background:#e74c3c22;border:1px solid #e74c3c;color:#e74c3c">Lv.4 重点確認</div>
+              <div class="setting-input-row"><span>上記最大値を超えた場合</span></div>
             </div>
           </div>
-          <button class="btn-save" onclick="saveSettings()">💾 保存</button>
+          <div style="margin-top:12px;display:flex;justify-content:flex-end">
+            <button class="btn-save" onclick="saveLevelConfig()">💾 閾値を保存</button>
+          </div>
+        </div>
+
+        <!-- 強制アラート条件設定 -->
+        <div class="chart-card full-width">
+          <div class="chart-header">
+            <h3>🚨 強制アラート条件設定</h3>
+            <button class="btn-reset" onclick="resetForceConfig()">↺ デフォルトに戻す</button>
+          </div>
+          <p class="settings-desc">スコアに関わらず、以下の条件に該当する場合は指定レベル以上に強制判定します。</p>
+          <div class="settings-force-grid">
+            <div class="force-section">
+              <div class="force-section-title vac-color">休暇中業務</div>
+              <div class="setting-item"><label>休暇中業務1日以上 → 最低レベル</label><div class="setting-input-row"><span>Lv.</span><input type="number" id="fc-vac-day1" min="0" max="4"><span>以上</span></div></div>
+              <div class="setting-item"><label>休暇中業務2日以上 → 最低レベル</label><div class="setting-input-row"><span>Lv.</span><input type="number" id="fc-vac-day2" min="0" max="4"><span>以上</span></div></div>
+              <div class="setting-item"><label>休暇中業務3時間以上 → 最低レベル</label><div class="setting-input-row"><span>Lv.</span><input type="number" id="fc-vac-hour3" min="0" max="4"><span>以上</span></div></div>
+            </div>
+            <div class="force-section">
+              <div class="force-section-title break0-color">休憩0分</div>
+              <div class="setting-item"><label>休憩0分1日以上 → 最低レベル</label><div class="setting-input-row"><span>Lv.</span><input type="number" id="fc-break0-day1" min="0" max="4"><span>以上</span></div></div>
+              <div class="setting-item"><label>休憩0分3日以上 → 最低レベル</label><div class="setting-input-row"><span>Lv.</span><input type="number" id="fc-break0-day3" min="0" max="4"><span>以上</span></div></div>
+              <div class="setting-item"><label>休憩0分5日以上 → 最低レベル</label><div class="setting-input-row"><span>Lv.</span><input type="number" id="fc-break0-day5" min="0" max="4"><span>以上</span></div></div>
+            </div>
+            <div class="force-section">
+              <div class="force-section-title ot-color">時間外労働</div>
+              <div class="setting-item"><label>残業90分以上5日以上 → 最低レベル</label><div class="setting-input-row"><span>Lv.</span><input type="number" id="fc-ot90-day5" min="0" max="4"><span>以上</span></div></div>
+              <div class="setting-item"><label>残業120分以上3日以上 → 最低レベル</label><div class="setting-input-row"><span>Lv.</span><input type="number" id="fc-ot120-day3" min="0" max="4"><span>以上</span></div></div>
+            </div>
+            <div class="force-section">
+              <div class="force-section-title break-color">休憩不足（連続）</div>
+              <div class="setting-item"><label>休憩35分以下5日以上 → 最低レベル</label><div class="setting-input-row"><span>Lv.</span><input type="number" id="fc-break35-day5" min="0" max="4"><span>以上</span></div></div>
+              <div class="setting-item"><label>休憩35分以下10日以上 → 最低レベル</label><div class="setting-input-row"><span>Lv.</span><input type="number" id="fc-break35-day10" min="0" max="4"><span>以上</span></div></div>
+            </div>
+            <div class="force-section">
+              <div class="force-section-title comp-color">複合条件</div>
+              <div class="setting-item"><label>休憩0分かつ残業90分以上（同日）→ 最低レベル</label><div class="setting-input-row"><span>Lv.</span><input type="number" id="fc-comp-b0ot90" min="0" max="4"><span>以上</span></div></div>
+              <div class="setting-item"><label>休暇中業務かつ時間外あり（同日）→ 最低レベル</label><div class="setting-input-row"><span>Lv.</span><input type="number" id="fc-comp-vacot" min="0" max="4"><span>以上</span></div></div>
+            </div>
+          </div>
+          <div style="margin-top:12px;display:flex;justify-content:flex-end">
+            <button class="btn-save" onclick="saveForceConfig()">💾 強制アラート条件を保存</button>
+          </div>
         </div>
 
         <div class="chart-card">
@@ -566,6 +648,6 @@
 
 <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=3.0"></script>
+  <script src="app.js?v=4.0"></script>
 </body>
 </html>

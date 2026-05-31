@@ -307,3 +307,101 @@ body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Go
 .score-factor-label { flex:1; color:var(--text); }
 .score-factor-weight { font-weight:700; color:var(--text-sub); white-space:nowrap; font-size:0.78rem; }
 .score-factor-note  { font-size:0.72rem; color:var(--text-sub); margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
+
+/* ===== v4.0 フォント・文字サイズ改善 ===== */
+body { font-size: 15px; }
+.kpi-label { font-size: 0.82rem; }
+.kpi-value { font-size: 1.25rem; }
+.kpi-mom   { font-size: 0.78rem; }
+.chart-header h3 { font-size: 0.95rem; }
+.dept-table { font-size: 0.88rem; }
+.dept-table th, .dept-table td { padding: 9px 11px; }
+.ot-table { font-size: 0.85rem; }
+.ot-table th, .ot-table td { padding: 7px 9px; }
+.score-top5-table { font-size: 0.8rem; }
+.score-top5-table th, .score-top5-table td { padding: 6px 7px; }
+.member-card-name { font-size: 0.95rem; }
+.member-card-dept { font-size: 0.75rem; }
+.member-stat-label { font-size: 0.72rem; }
+.member-stat-value { font-size: 0.88rem; }
+.member-card-reason { font-size: 0.75rem; }
+.member-card-score { font-size: 2rem; }
+.member-card-lv-badge { font-size: 0.75rem; padding: 4px 9px; }
+
+/* ===== v4.0 レイアウト改善（横棒グラフ10名対応） ===== */
+/* 行2: 円グラフ固定幅 / 横棒グラフ拡大 / スコアアラートパネル固定幅 */
+.chart-row .chart-card.worktype-card  { flex: 0 0 280px; }
+.chart-row .chart-card.personal-card  { flex: 1 1 0; min-width: 0; }
+.chart-row .chart-card.score-panel-card { flex: 0 0 300px; }
+
+/* 横棒グラフ：10名でも潰れない高さ */
+.chart-body-personal { position: relative; min-height: 320px; }
+
+/* 行3: 部門テーブル / アラート一覧 / OT一覧 */
+.chart-row .chart-card.dept-card   { flex: 0 0 360px; }
+.chart-row .chart-card.alert-card  { flex: 0 0 280px; }
+.chart-row .chart-card.ot-card     { flex: 1 1 0; min-width: 0; }
+
+/* 行4: メンバーグリッド拡大 / 算出要因パネル固定幅 */
+.member-grid-card  { flex: 1 1 0; min-width: 0; }
+.score-factor-card { flex: 0 0 260px; }
+
+/* メンバーカード：幅を少し広げて見やすく */
+.member-card { width: 230px; }
+
+/* ===== v4.0 スコアアラートアイテム ===== */
+.alert-score-item { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:8px; background:var(--bg3); margin-bottom:8px; cursor:pointer; transition:background 0.15s; }
+.alert-score-item:hover { background:rgba(79,142,247,0.1); }
+.alert-score-icon { font-size:0.8rem; font-weight:700; padding:4px 8px; border-radius:6px; flex-shrink:0; }
+.alert-score-body { flex:1; }
+.alert-score-title { font-size:0.88rem; font-weight:700; margin-bottom:2px; }
+.alert-score-desc  { font-size:0.78rem; color:var(--text-sub); }
+.alert-score-count { font-size:1.1rem; font-weight:700; color:var(--red); white-space:nowrap; }
+.alert-vac    .alert-score-icon { background:rgba(231,76,60,0.2); color:#e74c3c; }
+.alert-break0 .alert-score-icon { background:rgba(230,126,34,0.2); color:#e67e22; }
+.alert-ot     .alert-score-icon { background:rgba(241,196,15,0.2); color:#f1c40f; }
+.alert-comp   .alert-score-icon { background:rgba(155,89,182,0.2); color:#9b59b6; }
+
+/* ===== v4.0 メンバーカード内スコア内訳 ===== */
+.member-card-breakdown { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px; }
+.bd-item { font-size:0.68rem; background:var(--bg2); border:1px solid var(--border); border-radius:4px; padding:2px 6px; color:var(--text-sub); }
+
+/* ===== v4.0 設定タブ — スコア配点 ===== */
+.score-concept-box { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:20px; }
+.score-concept-box h4 { font-size:0.95rem; font-weight:700; margin-bottom:8px; color:var(--accent); }
+.score-concept-box p  { font-size:0.85rem; color:var(--text-sub); line-height:1.6; margin-bottom:12px; }
+.score-concept-table  { overflow-x:auto; }
+.score-concept-table table { width:100%; border-collapse:collapse; font-size:0.83rem; }
+.score-concept-table th { background:var(--bg2); color:var(--text-sub); padding:8px 10px; text-align:left; border-bottom:1px solid var(--border); }
+.score-concept-table td { padding:8px 10px; border-bottom:1px solid var(--border); color:var(--text); }
+.score-concept-table tr:last-child td { border-bottom:none; }
+
+.settings-score-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:16px; }
+.score-section { background:var(--bg3); border-radius:8px; padding:14px 16px; }
+.score-section-title { font-size:0.88rem; font-weight:700; margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+.vac-color    { color:#e74c3c; }
+.break0-color { color:#e67e22; }
+.ot-color     { color:#f1c40f; }
+.break-color  { color:#4f8ef7; }
+.comp-color   { color:#9b59b6; }
+.setting-item { margin-bottom:10px; }
+.setting-item label { display:block; font-size:0.82rem; color:var(--text-sub); margin-bottom:5px; }
+.setting-input-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.setting-input-row input[type="number"] { background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:6px 10px; color:var(--text); font-size:0.9rem; width:80px; outline:none; }
+.setting-input-row input[type="number"]:focus { border-color:var(--accent); }
+.setting-input-row span { color:var(--text-sub); font-size:0.85rem; }
+
+/* ===== v4.0 設定タブ — アラートレベル閾値 ===== */
+.settings-desc { font-size:0.85rem; color:var(--text-sub); margin-bottom:16px; line-height:1.6; }
+.settings-level-grid { display:flex; flex-wrap:wrap; gap:12px; }
+.level-item { background:var(--bg3); border-radius:8px; padding:14px 16px; min-width:180px; flex:1; }
+.level-badge-sm { display:inline-block; font-size:0.82rem; font-weight:700; border-radius:6px; padding:4px 10px; margin-bottom:10px; }
+
+/* ===== v4.0 設定タブ — 強制アラート条件 ===== */
+.settings-force-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:16px; }
+.force-section { background:var(--bg3); border-radius:8px; padding:14px 16px; }
+.force-section-title { font-size:0.88rem; font-weight:700; margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+
+/* ===== v4.0 設定タブ — リセットボタン ===== */
+.btn-reset { background:none; border:1px solid var(--border); color:var(--text-sub); border-radius:6px; padding:5px 12px; cursor:pointer; font-size:0.82rem; }
+.btn-reset:hover { border-color:var(--accent); color:var(--accent); }
