@@ -41,6 +41,23 @@ body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Go
 /* ===== メイン画面レイアウト ===== */
 .main-screen { display:flex; min-height:100vh; }
 
+/* デスクトップ向けレスポンシブ調整 */
+@media (min-width: 768px) {
+  body { display: flex; justify-content: center; align-items: flex-start; background: linear-gradient(135deg, #0a0d13 0%, #0f1117 50%, #0a0d13 100%); padding: 20px 0; }
+  .main-screen { max-width: 480px; height: calc(100vh - 40px); border-radius: 24px; box-shadow: 0 0 60px rgba(0,0,0,0.8); margin: 0 auto; overflow: hidden; border: 4px solid #2e3350; }
+  .sidebar { display: none; }
+  .main-content { flex: 1; position: relative; padding-bottom: 60px; }
+  .mobile-nav { display: flex !important; }
+  .main-header { padding: 10px 16px; }
+  .header-user-name, .header-user-role { font-size: 0.7rem; }
+  .header-left h2 { font-size: 0.9rem; }
+}
+
+/* モバイルナビゲーション */
+.mobile-nav { display: none; position: absolute; bottom: 0; left: 0; width: 100%; height: 60px; background: var(--bg2); border-top: 1px solid var(--border); justify-content: space-around; align-items: center; z-index: 100; }
+.mobile-nav-item { background: none; border: none; color: var(--text-sub); font-size: 20px; cursor: pointer; padding: 10px; transition: color 0.2s; }
+.mobile-nav-item.active { color: var(--accent); }
+
 /* サイドバー */
 .sidebar { width: 200px; background: var(--bg2); border-right: 1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
 .sidebar-logo { display:flex; align-items:center; gap:10px; padding:20px 16px; border-bottom:1px solid var(--border); }
