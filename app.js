@@ -159,7 +159,7 @@ const TAB_TITLES = {
 };
 
 function switchTab(name) {
-  document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.toggle('active', t.id === 'tab-' + name));
   document.getElementById('page-title').textContent = TAB_TITLES[name] || name;
   if (name === 'summary')  renderSummaryTab();
