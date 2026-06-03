@@ -63,11 +63,11 @@ body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Go
 
 /* ヘッダー */
 .main-header { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; background:var(--bg2); border-bottom:1px solid var(--border); flex-shrink:0; }
-.header-left h2 { font-size:1.1rem; font-weight:700; }
+.header-left h2 { font-size:1.1rem; font-weight:700; display: inline-block; vertical-align: middle; }
 .header-period { font-size:0.8rem; color:var(--text-sub); margin-left:10px; }
 .header-right { display:flex; align-items:center; gap:16px; }
 .header-update { font-size:0.78rem; color:var(--text-sub); }
-.version-info { font-size:0.78rem; color:var(--text-sub); margin-right: 16px; }
+.version-info { font-size:0.75rem; color:var(--text-sub); margin-left: 10px; font-weight: normal; }
 .header-user { display:flex; align-items:center; gap:8px; }
 .header-user-icon { font-size:22px; }
 .header-user-name { font-size:0.88rem; font-weight:600; }
