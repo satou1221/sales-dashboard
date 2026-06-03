@@ -67,6 +67,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Go
 .header-period { font-size:0.8rem; color:var(--text-sub); margin-left:10px; }
 .header-right { display:flex; align-items:center; gap:16px; }
 .header-update { font-size:0.78rem; color:var(--text-sub); }
+.version-info { font-size:0.78rem; color:var(--text-sub); margin-right: 16px; }
 .header-user { display:flex; align-items:center; gap:8px; }
 .header-user-icon { font-size:22px; }
 .header-user-name { font-size:0.88rem; font-weight:600; }
