@@ -19,55 +19,59 @@ const DEFAULT_WORK_MASTER = [
 
 // ============================================================
 // デフォルトスコア設定（仕様書準拠）
-// ============================================================
+// デフォルトスコア設定（2026年6月版・設計書準拠）
 const DEFAULT_SCORE_CONFIG = {
   // 休暇中業務
-  vacDayPt:        15,   // 休暇中業務発生日数 × 15
-  vacHourPt:        5,   // 休暇中業務時間 × 5
-  // 休憩0分
-  break0Pt:        12,   // 休憩0分日数 × 12
+  vacDayPt:        8,    // 休暇中業務発生日数 × 8
+  vacHourPt:        3,   // 休暇中業務時間 × 3
+  // 休憩0分（実業務6時間超かつ休憩0分のみ）
+  break0Pt:        7,    // 休憩0分日数 × 7
   // 時間外
-  ot60Pt:           1,   // 残業60〜89分 × 1
-  ot90Pt:           6,   // 残業90〜119分 × 6
-  ot120Pt:         10,   // 残業120分以上 × 10
-  otMonth20Pt:     10,   // 月間時間外20時間以上 +10
-  otMonth30Pt:     20,   // 月間時間外30時間以上 +20
-  // 休憩不足
-  break21Pt:        3,   // 休憩21〜35分 × 3
-  break1Pt:         6,   // 休憩1〜20分 × 6
+  ot60Pt:           3,   // 残業60〜89分 × 3
+  ot90Pt:           5,   // 残業90〜119分 × 5
+  ot120Pt:         7,    // 残業120分以上 × 7
+  otMonth20Pt:     5,    // 月間時間外20時間以上 +5
+  otMonth30Pt:     10,   // 月間時間外30時間以上 +10
+  // 休憩不足（実業務6時間超の日のみ）
+  break36Pt:        1,   // 休憩36〜44分 × 1
+  break21Pt:        2,   // 休憩21〜35分 × 2
+  break1Pt:         4,   // 休憩1〜20分 × 4
+  // 実業務8時間超かつ休憩60分未満
+  ot8hBreak60Pt:    2,   // × 2
   // 複合条件
-  comp3BreakPt:     5,   // 休憩35分以下3日連続 × 5
-  comp3OtPt:        5,   // 残業90分以上3日連続 × 5
+  comp3BreakPt:     4,   // 休憩35分以下3日連続 × 4
+  comp3OtPt:        6,   // 残業90分以上3日連続 × 6
   compBreak0OtPt:   8,   // 休憩0分かつ残業90分以上の日 × 8
   compVacOtPt:      8,   // 休暇中業務かつ時間外ありの日 × 8
   compBreakOtPt:    5,   // 休憩35分以下かつ残業90分以上の日 × 5
 };
 
-// デフォルトアラートレベル閾値
+// デフォルトアラートレベル閾値（2026年6月版）
 const DEFAULT_LEVEL_CONFIG = {
-  lv0Max: 19,   // 0〜19: Lv.0 通常
-  lv1Max: 39,   // 20〜39: Lv.1 軽注意
-  lv2Max: 69,   // 40〜69: Lv.2 注意
-  lv3Max: 99,   // 70〜99: Lv.3 要確認
-                // 100以上: Lv.4 重点確認
+  lv0Max: 4,    // 0〜4: Lv.0 通常
+  lv1Max: 14,   // 5〜14: Lv.1 軽注意
+  lv2Max: 34,   // 15〜34: Lv.2 注意
+  lv3Max: 69,   // 35〜69: Lv.3 要確認
+                // 70以上: Lv.4 重点確認
 };
 
-// デフォルト強制アラート条件
+// デフォルト強制アラート条件（2026年6月版）
 const DEFAULT_FORCE_CONFIG = {
   vacDay1Lv:   2,  // 休暇中業務1日以上 → Lv.2以上
   vacDay2Lv:   3,  // 休暇中業務2日以上 → Lv.3以上
+  vacDay3Lv:   4,  // 休暇中業務3日以上 → Lv.4以上
   vacHour3Lv:  3,  // 休暇中業務3時間以上 → Lv.3以上
+  vacHour6Lv:  4,  // 休暇中業務6時間以上 → Lv.4以上
   break0Day1Lv: 2, // 休憩0分1日以上 → Lv.2以上
   break0Day3Lv: 3, // 休憩0分3日以上 → Lv.3以上
   break0Day5Lv: 4, // 休憩0分5日以上 → Lv.4以上
   ot90Day5Lv:  3,  // 残業90分以上5日以上 → Lv.3以上
   ot120Day3Lv: 4,  // 残業120分以上3日以上 → Lv.4以上
-  break35Day5Lv: 2,// 休憩35分以下5日以上 → Lv.2以上
-  break35Day10Lv:3, // 休憩35分以下10日以上 → Lv.3以上
+  break35Day5Lv: 3,// 休憩35分以下5日以上 → Lv.3以上
+  break35Day10Lv:4, // 休憩35分以下10日以上 → Lv.4以上
   compBreak0Ot90Lv: 3, // 休憩0分かつ残業90分以上同日 → Lv.3以上
-  compVacOtLv:  4, // 休暇中業務かつ時間外同日 → Lv.4以上
+  compVacOtLv:  3, // 休暇中業務かつ時間外同日 → Lv.3以上
 };
-
 let allRecords = [];
 let chartInstances = {};
 
@@ -324,11 +328,12 @@ function calculateScores(empId) {
   const vacHours = st.vacMin / 60;
   const vacScore = vacDays * cfg.vacDayPt + vacHours * cfg.vacHourPt;
 
-  // --- 2. 休憩0分スコア ---
-  const break0Days = days.filter(([,d]) => d.breakMin === 0 && (d.otMin > 0 || d.vacMin > 0 || Object.keys(st.byType).length > 0)).length;
-  // 実際に業務があった日のみ休憩0分をカウント（休日除外のため）
-  const workDays = days.filter(([,d]) => d.otMin > 0 || d.vacMin > 0 || st.totalMin > 0);
-  const break0DaysActual = days.filter(([,d]) => d.breakMin === 0).length;
+  // --- 2. 休憩0分スコア（実業務6時間超かつ休憩0分のみ） ---
+  // 実業務時間 = 速報時間 + 残業時間 - 休憩時間
+  const break0DaysActual = days.filter(([,d]) => {
+    const workHours = (st.totalMin - d.breakMin) / 60; // 実業務時間を粗い推定
+    return d.breakMin === 0 && workHours >= 6; // 実業6時間超かつ休憩0分
+  }).length;
   const break0Score = break0DaysActual * cfg.break0Pt;
 
   // --- 3. 時間外スコア ---
@@ -340,10 +345,20 @@ function calculateScores(empId) {
   if (otMonthMin >= 30 * 60) otScore += cfg.otMonth30Pt;
   else if (otMonthMin >= 20 * 60) otScore += cfg.otMonth20Pt;
 
-  // --- 4. 休憩不足スコア ---
-  const break21Days = days.filter(([,d]) => d.breakMin >= 21 && d.breakMin <= 35).length;
-  const break1Days  = days.filter(([,d]) => d.breakMin >= 1  && d.breakMin <= 20).length;
-  const breakShortScore = break21Days * cfg.break21Pt + break1Days * cfg.break1Pt;
+  // --- 4. 休憩不足スコア（実業務6時間超の日のみ） ---
+  const break36Days = days.filter(([,d]) => {
+    const workHours = (st.totalMin - d.breakMin) / 60;
+    return d.breakMin >= 36 && d.breakMin <= 44 && workHours >= 6;
+  }).length;
+  const break21Days = days.filter(([,d]) => {
+    const workHours = (st.totalMin - d.breakMin) / 60;
+    return d.breakMin >= 21 && d.breakMin <= 35 && workHours >= 6;
+  }).length;
+  const break1Days  = days.filter(([,d]) => {
+    const workHours = (st.totalMin - d.breakMin) / 60;
+    return d.breakMin >= 1  && d.breakMin <= 20 && workHours >= 6;
+  }).length;
+  const breakShortScore = break36Days * cfg.break36Pt + break21Days * cfg.break21Pt + break1Days * cfg.break1Pt;
 
   // --- 5. 複合条件スコア ---
   // 休憩35分以下が3営業日連続した回数
@@ -383,7 +398,9 @@ function calculateScores(empId) {
   let forceLevel = 0;
   if (vacDays >= 1)                          forceLevel = Math.max(forceLevel, frc.vacDay1Lv);
   if (vacDays >= 2)                          forceLevel = Math.max(forceLevel, frc.vacDay2Lv);
+  if (vacDays >= 3)                          forceLevel = Math.max(forceLevel, frc.vacDay3Lv);
   if (vacHours >= 3)                         forceLevel = Math.max(forceLevel, frc.vacHour3Lv);
+  if (vacHours >= 6)                         forceLevel = Math.max(forceLevel, frc.vacHour6Lv);
   if (break0DaysActual >= 1)                 forceLevel = Math.max(forceLevel, frc.break0Day1Lv);
   if (break0DaysActual >= 3)                 forceLevel = Math.max(forceLevel, frc.break0Day3Lv);
   if (break0DaysActual >= 5)                 forceLevel = Math.max(forceLevel, frc.break0Day5Lv);
@@ -402,7 +419,7 @@ function calculateScores(empId) {
     vac:   { days: vacDays,         hours: Math.round(vacHours*10)/10, pt: Math.round(vacScore) },
     break0:{ days: break0DaysActual, pt: Math.round(break0Score) },
     ot:    { d60: ot60Days, d90: ot90Days, d120: ot120Days, monthMin: otMonthMin, pt: Math.round(otScore) },
-    breakShort: { d21: break21Days, d1: break1Days, pt: Math.round(breakShortScore) },
+    breakShort: { d36: break36Days, d21: break21Days, d1: break1Days, pt: Math.round(breakShortScore) },
     comp:  { c3Break: comp3BreakCount, c3Ot: comp3OtCount, cB0Ot: compBreak0OtDays, cVacOt: compVacOtDays, cBOt: compBreakOtDays, pt: Math.round(compScore) },
   };
 
@@ -444,7 +461,8 @@ function buildRiskReason(empId) {
   else if (bd.ot.d90 >= 1)           reasons.push(`残業90分超 ${bd.ot.d90}日`);
 
   if (bd.breakShort.d1 >= 1)         reasons.push(`休憩1〜20分 ${bd.breakShort.d1}日`);
-  else if (bd.breakShort.d21 >= 3)   reasons.push(`休憩35分以下 ${bd.breakShort.d21}日`);
+  else if (bd.breakShort.d21 >= 2)   reasons.push(`休憩21〜35分 ${bd.breakShort.d21}日`);
+  else if (bd.breakShort.d36 >= 1)   reasons.push(`休憩36〜44分 ${bd.breakShort.d36}日`);
 
   if (bd.comp.c3Break >= 1)          reasons.push(`休憩不足3日連続 ${bd.comp.c3Break}回`);
   if (bd.comp.c3Ot >= 1)             reasons.push(`残業90分超3日連続 ${bd.comp.c3Ot}回`);
@@ -453,7 +471,7 @@ function buildRiskReason(empId) {
   if (bd.ot.monthMin >= 30 * 60)     reasons.push('月間時間外30時間超');
   else if (bd.ot.monthMin >= 20 * 60) reasons.push('月間時間外20時間超');
 
-  if (reasons.length === 0 && bd.ot.d60 >= 3) reasons.push(`残業60〜89分が多い（${bd.ot.d60}日）`);
+  if (reasons.length === 0 && bd.ot.d60 >= 2) reasons.push(`残業60〜89分が多い（${bd.ot.d60}日）`);
 
   return reasons.slice(0, 3).join('、') || 'なし';
 }
@@ -462,7 +480,8 @@ function buildRiskReason(empId) {
 // レベル表示ユーティリティ
 // ============================================================
 const LV_COLOR = { 4:'#e74c3c', 3:'#e67e22', 2:'#f1c40f', 1:'#4f8ef7', 0:'#2ecc71' };
-const LV_LABEL = { 4:'重点確認', 3:'要確認', 2:'注意', 1:'軽注意', 0:'通常' };
+const LV_LABEL = { 4:'重点確認', 3:'要確認', 2:'面談確認', 1:'軽注意', 0:'通常' };
+
 
 function lvColor(lv) { return LV_COLOR[lv] || '#2ecc71'; }
 function lvLabel(lv) { return LV_LABEL[lv] || '通常'; }
@@ -910,14 +929,15 @@ function renderScoreFactorList() {
   const factors = [
     { cls:'factor-vac',    label:'休暇中業務発生日数',    weight:`${cfg.vacDayPt}pt/日` },
     { cls:'factor-vac',    label:'休暇中業務時間',        weight:`${cfg.vacHourPt}pt/時間` },
-    { cls:'factor-break0', label:'休憩0分',               weight:`${cfg.break0Pt}pt/日` },
-    { cls:'factor-ot',     label:'残業60〜89分',          weight:`${cfg.ot60Pt}pt/日` },
-    { cls:'factor-ot',     label:'残業90〜119分',         weight:`${cfg.ot90Pt}pt/日` },
-    { cls:'factor-ot',     label:'残業120分以上',         weight:`${cfg.ot120Pt}pt/日` },
+    { cls:'factor-break0',  label:'休憩0分日数',           weight:`${cfg.break0Pt}pt/日` },
+    { cls:'factor-ot',     label:'残業60~89分',              weight:`${cfg.ot60Pt}pt/日` },
+    { cls:'factor-ot',     label:'残業90~119分',             weight:`${cfg.ot90Pt}pt/日` },
+    { cls:'factor-ot',     label:'残業120分以上',              weight:`${cfg.ot120Pt}pt/日` },
     { cls:'factor-ot',     label:'月間時間外20時間以上',  weight:`+${cfg.otMonth20Pt}pt` },
     { cls:'factor-ot',     label:'月間時間外30時間以上',  weight:`+${cfg.otMonth30Pt}pt` },
-    { cls:'factor-break',  label:'休憩21〜35分',          weight:`${cfg.break21Pt}pt/日` },
-    { cls:'factor-break',  label:'休憩1〜20分',           weight:`${cfg.break1Pt}pt/日` },
+    { cls:'factor-break',  label:'休憩36~44分',          weight:`${cfg.break36Pt}pt/日` },
+    { cls:'factor-break',  label:'休憩21~35分',          weight:`${cfg.break21Pt}pt/日` },
+    { cls:'factor-break',  label:'休憩1~20分',           weight:`${cfg.break1Pt}pt/日` },
     { cls:'factor-comp',   label:'休憩35分以下3日連続',   weight:`${cfg.comp3BreakPt}pt/回` },
     { cls:'factor-comp',   label:'残業90分以上3日連続',   weight:`${cfg.comp3OtPt}pt/回` },
     { cls:'factor-comp',   label:'休憩0分+残業90分超同日', weight:`${cfg.compBreak0OtPt}pt/日` },
@@ -1717,22 +1737,37 @@ function renderPcAdvice(empId, sc, bd, st) {
   const advices  = [];
   const nextActions = [];
 
-  // アドバイス生成ロジック
+  // アドバイス生成ロジック（新仕様対応）
+  const riskLevel = sc.riskLevel;
+  
+  // リスクレベル別の総括アドバイス
+  if (riskLevel === 4) {
+    advices.push({ icon:'🚨', color:'#e74c3c', title:'緊急対応が必要です', text:'複数の危険因子が重複しています。直ちに業務の見直しと休息の確保を検討してください。' });
+    nextActions.push('経営層への報告・対応方針の決定');
+  } else if (riskLevel === 3) {
+    advices.push({ icon:'⚠️', color:'#e67e22', title:'早急な改善が必要', text:'業務負荷が高い状態が続いています。業務の分散・優先順位の見直しを進めましょう。' });
+    nextActions.push('業務分担の見直し・優先順位の再設定');
+  } else if (riskLevel === 2) {
+    advices.push({ icon:'📋', color:'#f1c40f', title:'面談で状況確認が必要', text:'複数の負荷要因が検出されています。詳細な状況をお聞かせください。' });
+    nextActions.push('本人との面談実施・具体的改善策の検討');
+  }
+  
+  // 具体的な負荷要因別アドバイス
   if (bd.vac.days >= 2) {
     advices.push({ icon:'👥', color:'#e74c3c', title:'休日対応ルールの見直し', text:`休日対応が${bd.vac.days}日発生。対応基準と代替体制を明確化しましょう。` });
     nextActions.push('休日対応ルールをチームで再確認');
   }
-  if (bd.ot.d90 + bd.ot.d120 >= 3) {
-    advices.push({ icon:'📊', color:'#e67e22', title:'時間外集中の分散化', text:`時間外90分超が${bd.ot.d90+bd.ot.d120}日。業務の分担・引き継ぎを見直しましょう。` });
+  if (bd.ot.d120 >= 2) {
+    advices.push({ icon:'📊', color:'#e67e22', title:'長時間残業の改善', text:`120分以上の残業が${bd.ot.d120}日。業務の分担・効率化を見直しましょう。` });
     nextActions.push('月次計画に前倒しタスクを設定');
   }
   if (bd.break0.days >= 2) {
     advices.push({ icon:'☕', color:'#f1c40f', title:'休憩確保の徹底', text:`休憩0分が${bd.break0.days}日。業務過多のサインです。計画的な休憩を確保しましょう。` });
     nextActions.push('休憩0分日の業務内容を確認・改善');
   }
-  if (bd.breakShort.d21 + bd.breakShort.d1 >= 3) {
-    advices.push({ icon:'⚠️', color:'#3498db', title:'月末集中業務の前倒し', text:'月末に業務が集中するパターンが見られます。前倒し計画を検討しましょう。' });
-    nextActions.push('低貢献・高負荷業務の改善案を検討');
+  if (bd.breakShort.d1 >= 2) {
+    advices.push({ icon:'⏱️', color:'#3498db', title:'短時間休憩の改善', text:`休憩1~20分の日が${bd.breakShort.d1}日。疲労蓄積のリスクがあります。` });
+    nextActions.push('休憩時間の確保・業務スケジュール見直し');
   }
 
   if (advices.length === 0) {
@@ -1913,6 +1948,7 @@ function loadSettingsForm() {
   setVal('sc-ot120',         sc.ot120Pt);
   setVal('sc-ot-month20',    sc.otMonth20Pt);
   setVal('sc-ot-month30',    sc.otMonth30Pt);
+  setVal('sc-break36',       sc.break36Pt);
   setVal('sc-break21',       sc.break21Pt);
   setVal('sc-break1',        sc.break1Pt);
   setVal('sc-comp-3break',   sc.comp3BreakPt);
@@ -1922,12 +1958,11 @@ function loadSettingsForm() {
   setVal('sc-comp-brot',     sc.compBreakOtPt);
 
   // アラートレベル閾値
-  const lv = s.levelConfig;
-  setVal('lv-0-max', lv.lv0Max);
-  setVal('lv-1-max', lv.lv1Max);
-  setVal('lv-2-max', lv.lv2Max);
-  setVal('lv-3-max', lv.lv3Max);
-
+  const lvc = s.levelConfig;
+  setVal('lv-0-max', lvc.lv0Max);
+  setVal('lv-1-max', lvc.lv1Max);
+  setVal('lv-2-max', lvc.lv2Max);
+  setVal('lv-3-max', lvc.lv3Max);
   // 強制アラート
   const fc = s.forceConfig;
   setVal('fc-vac-day1',      fc.vacDay1Lv);
@@ -1956,6 +1991,7 @@ function saveScoreConfig() {
     ot120Pt:        getNum('sc-ot120'),
     otMonth20Pt:    getNum('sc-ot-month20'),
     otMonth30Pt:    getNum('sc-ot-month30'),
+    break36Pt:      getNum('sc-break36'),
     break21Pt:      getNum('sc-break21'),
     break1Pt:       getNum('sc-break1'),
     comp3BreakPt:   getNum('sc-comp-3break'),
@@ -1978,6 +2014,8 @@ function saveLevelConfig() {
     lv2Max: getNum('lv-2-max'),
     lv3Max: getNum('lv-3-max'),
   };
+  // 強制アラート条件を追加読み込み（旧データとの互換性維持）
+  s.forceConfig = Object.assign({}, DEFAULT_FORCE_CONFIG, s.forceConfig || {});
   saveSettingsObj(s);
   showToast('アラートレベル閾値を保存しました');
   renderAll();
