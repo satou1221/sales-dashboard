@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>営業部 業務時間ダッシュボード</title>
-  <link rel="stylesheet" href="style.css?v=4.6">
+  <link rel="stylesheet" href="style.css?v=4.7">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -388,7 +388,7 @@
           <div class="pc-score-card" id="pc-score-card">
             <div class="pc-score-icon">📊</div>
             <div class="pc-score-body">
-              <div class="pc-score-label">業務負荷スコア</div>
+              <div class="pc-card-title">多忙リスクスコア内訳</div>>
               <div class="pc-score-main">
                 <span class="pc-score-val" id="pc-score-val">--</span>
                 <span class="pc-score-unit">点</span>
@@ -679,7 +679,7 @@
             <!-- 休暇中業務 -->
             <div class="score-section">
               <div class="score-section-title vac-color">休暇中業務</div>
-              <div class="setting-item"><label>発生日数（1日あたり）</label><div class="setting-input-row"><input type="number" id="sc-vac-day" min="0" max="999"><span>pt/日</span></div></div>
+              <div class="setting-item"><label>Lv.2 閾値（面談確認）</label><div class="setting-input-row"><input type="number" id="sc-vac-day" min="0" max="999"><span>pt/日</span></div></div>
               <div class="setting-item"><label>業務時間（1時間あたり）</label><div class="setting-input-row"><input type="number" id="sc-vac-hour" min="0" max="999" step="0.1"><span>pt/時間</span></div></div>
             </div>
             <!-- 休憩0分 -->
@@ -821,6 +821,6 @@
 
 <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=4.0"></script>
+  <script src="app.js?v=4.7"></script>
 </body>
 </html>
