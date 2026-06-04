@@ -48,11 +48,11 @@ const DEFAULT_SCORE_CONFIG = {
 
 // デフォルトアラートレベル閾値（2026年6月版）
 const DEFAULT_LEVEL_CONFIG = {
-  lv0Max: 4,    // 0〜4: Lv.0 通常
-  lv1Max: 14,   // 5〜14: Lv.1 軽注意
-  lv2Max: 34,   // 15〜34: Lv.2 注意
-  lv3Max: 69,   // 35〜69: Lv.3 要確認
-                // 70以上: Lv.4 重点確認
+  lv0Max: 5,    // 0〜5: Lv.0 通常
+  lv1Max: 50,   // 6〜50: Lv.1 軽注意
+  lv2Max: 100,  // 51〜100: Lv.2 面談確認
+  lv3Max: 200,  // 101〜200: Lv.3 要確認
+                // 201以上: Lv.4 重点確認
 };
 
 // デフォルト強制アラート条件（2026年6月版）
@@ -393,6 +393,7 @@ function calculateScores(empId) {
   else if (totalScore > lvc.lv2Max) scoreLevel = 3;
   else if (totalScore > lvc.lv1Max) scoreLevel = 2;
   else if (totalScore > lvc.lv0Max) scoreLevel = 1;
+  else                              scoreLevel = 0;
 
   // --- 強制アラート ---
   let forceLevel = 0;
