@@ -4,7 +4,7 @@
 // 定数・グローバル
 // ============================================================
 const DEFAULT_PASSWORD = 'admin1234';
-const SETTINGS_VERSION = '4.7.3'; // 設定のバージョン管理用
+const SETTINGS_VERSION = '4.7.4'; // 設定のバージョン管理用
 
 // デフォルトの業務区分マスター
 const DEFAULT_WORK_MASTER = [
@@ -139,15 +139,20 @@ function getWorkColor(name) {
 function getPassword() { return localStorage.getItem('dash_password') || DEFAULT_PASSWORD; }
 
 function doLogin() {
-  const pw = document.getElementById('login-password').value;
-  if (pw === getPassword()) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('main-screen').style.display  = 'flex';
-    loadSettingsForm();
-    loadStoredData();
-    renderAll();
-  } else {
-    document.getElementById('login-error').style.display = 'block';
+  try {
+    const pw = document.getElementById(\'login-password\').value;
+    if (pw === getPassword()) {
+      document.getElementById(\'login-screen\').style.display = \'none\';
+      document.getElementById(\'main-screen\').style.display  = \'flex\';
+      loadSettingsForm();
+      loadStoredData();
+      renderAll();
+    } else {
+      document.getElementById(\'login-error\').style.display = \'block\';
+    }
+  } catch (e) {
+    console.error(\'Login error:\', e);
+    alert(\'ログイン中にエラーが発生しました。コンソールを確認してください。\');
   }
 }
 document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
