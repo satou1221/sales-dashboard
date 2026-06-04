@@ -4,7 +4,7 @@
 // 定数・グローバル
 // ============================================================
 const DEFAULT_PASSWORD = 'admin1234';
-const SETTINGS_VERSION = '4.7.4'; // 設定のバージョン管理用
+const SETTINGS_VERSION = '4.7.5'; // 設定のバージョン管理用
 
 // デフォルトの業務区分マスター
 const DEFAULT_WORK_MASTER = [
@@ -156,6 +156,7 @@ function doLogin() {
   }
 }
 document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('login-button').addEventListener('click', doLogin); // ログインボタンのイベントリスナーを追加
 
 function doLogout() {
   document.getElementById('main-screen').style.display  = 'none';

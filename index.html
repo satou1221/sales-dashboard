@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>営業部 業務時間ダッシュボード</title>
-  <link rel="stylesheet" href="style.css?v=4.7.4">
+  <link rel="stylesheet" href="style.css?v=4.7.5">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -24,7 +24,7 @@
         <p class="form-hint">※ 初回は設定画面でパスワードを変更してください</p>
       </div>
       <div id="login-error" class="login-error" style="display:none">パスワードが違います</div>
-      <button class="btn-login" onclick="doLogin()">ログイン</button>
+      <button class="btn-login" id="login-button">ログイン</button>
     </div>
   </div>
 </div>
@@ -79,7 +79,7 @@
     <header class="main-header">
       <div class="header-left">
         <h2 id="page-title">ダッシュボード</h2>
-        <div class="version-info">v4.7.4 (2026/06/04)</div>
+        <div class="version-info">v4.7.5 (2026/06/04)</div>
         <span class="header-period" id="header-period">データ未読込</span>
       </div>
       <div class="header-right">
@@ -822,6 +822,6 @@
 
 <div id="toast" class="toast"></div>
 
-  <script src="app.js?v=4.7.4"></script>
+  <script src="app.js?v=4.7.5"></script>
 </body>
 </html>
