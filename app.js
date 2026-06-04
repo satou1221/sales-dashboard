@@ -97,9 +97,13 @@ function loadSettings() {
     // 設定のバージョン管理とマイグレーション
     if (stored.version !== SETTINGS_VERSION) {
       console.log(`Settings migration: from ${stored.version || 'old'} to ${SETTINGS_VERSION}`);
-      // 古い設定を破棄し、最新のデフォルト設定を適用
+      // 古い設定を破棄し、最新のデフォルト設定を適用（パスワードは保持）
+      const currentPassword = localStorage.getItem('dash_password'); // 現在のパスワードを一時的に保持
       stored = {}; 
-      localStorage.removeItem(\'dash_settings\'); // 古い設定を完全に削除
+      localStorage.removeItem('dash_settings'); // 古い設定を完全に削除
+      if (currentPassword) {
+        localStorage.setItem('dash_password', currentPassword); // 保持したパスワードを復元
+      }
     }
 
     // ネストされたオブジェクトはマージ
@@ -466,32 +470,53 @@ function buildRiskReason(empId) {
   const bd = sc.breakdown;
   const reasons = [];
 
-  // 優先度順に表示
-  if (bd.comp.cVacOt >= 1)           reasons.push(`休暇中業務かつ時間外 ${bd.comp.cVacOt}日`);
-  else if (bd.vac.days >= 2)         reasons.push(`休暇中業務 ${bd.vac.days}日`);
-  else if (bd.vac.days >= 1)         reasons.push(`休暇中業務あり`);
+  // 強制アラート理由を優先的に表示
+  if (sc.riskLevel > sc.scoreLevel) {
+    const frc = loadSettings().forceConfig;
+    if (bd.vac.days >= 3 && sc.riskLevel === frc.vacDay3Lv) reasons.push(`休暇中業務${bd.vac.days}日`);
+    else if (bd.vac.days >= 2 && sc.riskLevel === frc.vacDay2Lv) reasons.push(`休暇中業務${bd.vac.days}日`);
+    else if (bd.vac.days >= 1 && sc.riskLevel === frc.vacDay1Lv) reasons.push(`休暇中業務${bd.vac.days}日`);
+    else if (bd.vac.hours >= 6 && sc.riskLevel === frc.vacHour6Lv) reasons.push(`休暇中業務${bd.vac.hours}時間`);
+    else if (bd.vac.hours >= 3 && sc.riskLevel === frc.vacHour3Lv) reasons.push(`休暇中業務${bd.vac.hours}時間`);
+    else if (bd.break0.days >= 5 && sc.riskLevel === frc.break0Day5Lv) reasons.push(`休憩0分${bd.break0.days}日`);
+    else if (bd.break0.days >= 3 && sc.riskLevel === frc.break0Day3Lv) reasons.push(`休憩0分${bd.break0.days}日`);
+    else if (bd.break0.days >= 1 && sc.riskLevel === frc.break0Day1Lv) reasons.push(`休憩0分${bd.break0.days}日`);
+    else if ((bd.ot.d90 + bd.ot.d120) >= 5 && sc.riskLevel === frc.ot90Day5Lv) reasons.push(`残業90分以上${(bd.ot.d90 + bd.ot.d120)}日`);
+    else if (bd.ot.d120 >= 3 && sc.riskLevel === frc.ot120Day3Lv) reasons.push(`残業120分以上${bd.ot.d120}日`);
+    else if ((bd.breakShort.d1 + bd.breakShort.d21 + bd.breakShort.d36) >= 10 && sc.riskLevel === frc.break35Day10Lv) reasons.push(`休憩35分以下${(bd.breakShort.d1 + bd.breakShort.d21 + bd.breakShort.d36)}日`);
+    else if ((bd.breakShort.d1 + bd.breakShort.d21 + bd.breakShort.d36) >= 5 && sc.riskLevel === frc.break35Day5Lv) reasons.push(`休憩35分以下${(bd.breakShort.d1 + bd.breakShort.d21 + bd.breakShort.d36)}日`);
+    else if (bd.comp.cB0Ot >= 1 && sc.riskLevel === frc.compBreak0Ot90Lv) reasons.push(`休憩0分+残業90分超`);
+    else if (bd.comp.cVacOt >= 1 && sc.riskLevel === frc.compVacOtLv) reasons.push(`休暇中業務+時間外`);
+  }
 
-  if (bd.break0.days >= 2)           reasons.push(`休憩0分 ${bd.break0.days}日`);
-  else if (bd.break0.days === 1)     reasons.push(`休憩0分 1日`);
+  // 優先度順に表示（スコア要因）
+  if (reasons.length === 0) {
+    if (bd.comp.cVacOt >= 1)           reasons.push(`休暇中業務かつ時間外 ${bd.comp.cVacOt}日`);
+    else if (bd.vac.days >= 2)         reasons.push(`休暇中業務 ${bd.vac.days}日`);
+    else if (bd.vac.days >= 1)         reasons.push(`休暇中業務あり`);
 
-  if (bd.ot.d120 >= 1)               reasons.push(`残業120分以上 ${bd.ot.d120}日`);
-  else if (bd.ot.d90 >= 3)           reasons.push(`残業90分超 ${bd.ot.d90}日`);
-  else if (bd.ot.d90 >= 1)           reasons.push(`残業90分超 ${bd.ot.d90}日`);
+    if (bd.break0.days >= 2)           reasons.push(`休憩0分 ${bd.break0.days}日`);
+    else if (bd.break0.days === 1)     reasons.push(`休憩0分 1日`);
 
-  if (bd.breakShort.d1 >= 1)         reasons.push(`休憩1〜20分 ${bd.breakShort.d1}日`);
-  else if (bd.breakShort.d21 >= 2)   reasons.push(`休憩21〜35分 ${bd.breakShort.d21}日`);
-  else if (bd.breakShort.d36 >= 1)   reasons.push(`休憩36〜44分 ${bd.breakShort.d36}日`);
+    if (bd.ot.d120 >= 1)               reasons.push(`残業120分以上 ${bd.ot.d120}日`);
+    else if (bd.ot.d90 >= 3)           reasons.push(`残業90分超 ${bd.ot.d90}日`);
+    else if (bd.ot.d90 >= 1)           reasons.push(`残業90分超 ${bd.ot.d90}日`);
 
-  if (bd.comp.c3Break >= 1)          reasons.push(`休憩不足3日連続 ${bd.comp.c3Break}回`);
-  if (bd.comp.c3Ot >= 1)             reasons.push(`残業90分超3日連続 ${bd.comp.c3Ot}回`);
-  if (bd.comp.cB0Ot >= 1)            reasons.push(`休憩0分+残業90分超 ${bd.comp.cB0Ot}日`);
+    if (bd.breakShort.d1 >= 1)         reasons.push(`休憩1〜20分 ${bd.breakShort.d1}日`);
+    else if (bd.breakShort.d21 >= 2)   reasons.push(`休憩21〜35分 ${bd.breakShort.d21}日`);
+    else if (bd.breakShort.d36 >= 1)   reasons.push(`休憩36〜44分 ${bd.breakShort.d36}日`);
 
-  if (bd.ot.monthMin >= 30 * 60)     reasons.push('月間時間外30時間超');
-  else if (bd.ot.monthMin >= 20 * 60) reasons.push('月間時間外20時間超');
+    if (bd.comp.c3Break >= 1)          reasons.push(`休憩不足3日連続 ${bd.comp.c3Break}回`);
+    if (bd.comp.c3Ot >= 1)             reasons.push(`残業90分超3日連続 ${bd.comp.c3Ot}回`);
+    if (bd.comp.cB0Ot >= 1)            reasons.push(`休憩0分+残業90分超 ${bd.comp.cB0Ot}日`);
 
-  if (reasons.length === 0 && bd.ot.d60 >= 2) reasons.push(`残業60〜89分が多い（${bd.ot.d60}日）`);
+    if (bd.ot.monthMin >= 30 * 60)     reasons.push(\'月間時間外30時間超\');
+    else if (bd.ot.monthMin >= 20 * 60) reasons.push(\'月間時間外20時間超\');
 
-  return reasons.slice(0, 3).join('、') || 'なし';
+    if (reasons.length === 0 && bd.ot.d60 >= 2) reasons.push(`残業60〜89分が多い（${bd.ot.d60}日）`);
+  }
+
+  return reasons.slice(0, 3).join(\'、\') || \'なし\';
 }
 
 // ============================================================
