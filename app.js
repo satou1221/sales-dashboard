@@ -4,6 +4,7 @@
 // 定数・グローバル
 // ============================================================
 const DEFAULT_PASSWORD = 'admin1234';
+const SETTINGS_VERSION = '4.7.3'; // 設定のバージョン管理用
 
 // デフォルトの業務区分マスター
 const DEFAULT_WORK_MASTER = [
@@ -91,15 +92,31 @@ function loadSettings() {
     breakWarn:     1,
   };
   try {
-    const stored = JSON.parse(localStorage.getItem('dash_settings') || '{}');
+    let stored = JSON.parse(localStorage.getItem(\'dash_settings\') || \'{}\');
+
+    // 設定のバージョン管理とマイグレーション
+    if (stored.version !== SETTINGS_VERSION) {
+      console.log(`Settings migration: from ${stored.version || 'old'} to ${SETTINGS_VERSION}`);
+      // 古い設定を破棄し、最新のデフォルト設定を適用
+      stored = {}; 
+      localStorage.removeItem(\'dash_settings\'); // 古い設定を完全に削除
+    }
+
     // ネストされたオブジェクトはマージ
     const merged = Object.assign({}, def, stored);
     merged.scoreConfig  = Object.assign({}, DEFAULT_SCORE_CONFIG,  stored.scoreConfig  || {});
     merged.levelConfig  = Object.assign({}, DEFAULT_LEVEL_CONFIG,  stored.levelConfig  || {});
     merged.forceConfig  = Object.assign({}, DEFAULT_FORCE_CONFIG,  stored.forceConfig  || {});
     if (!merged.workMaster || merged.workMaster.length === 0) merged.workMaster = DEFAULT_WORK_MASTER;
+    merged.version = SETTINGS_VERSION; // 最新バージョンを保存
+    saveSettingsObj(merged); // マイグレーション後の設定を保存
     return merged;
-  } catch { return def; }
+  } catch (e) {
+    console.error(\'Error loading settings:\', e);
+    const newSettings = { ...def, version: SETTINGS_VERSION };
+    saveSettingsObj(newSettings); // エラー時はデフォルト設定を保存
+    return newSettings;
+  }
 }
 
 function saveSettingsObj(s) {
