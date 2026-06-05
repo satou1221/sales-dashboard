@@ -139,6 +139,7 @@ function getWorkColor(name) {
 function getPassword() { return localStorage.getItem('dash_password') || DEFAULT_PASSWORD; }
 
 function doLogin() {
+  console.log("doLogin called");
   try {
     const pw = document.getElementById(\'login-password\').value;
     if (pw === getPassword()) {
@@ -205,6 +206,7 @@ function switchTab(name) {
 // CSV取込
 // ============================================================
 function loadStoredData() {
+  console.log("loadStoredData called");
   try { allRecords = JSON.parse(localStorage.getItem('dash_records') || '[]'); } catch { allRecords = []; }
 }
 function saveStoredData() { localStorage.setItem('dash_records', JSON.stringify(allRecords)); }
@@ -539,6 +541,7 @@ function lvLabel(lv) { return LV_LABEL[lv] || '通常'; }
 // 全体レンダリング
 // ============================================================
 function renderAll() {
+  console.log("renderAll called");
   updateHeaderPeriod();
   renderKPI();
   renderWorktypeChart();
@@ -1981,6 +1984,7 @@ function renderAlertTab() {
 // 設定画面
 // ============================================================
 function loadSettingsForm() {
+  console.log("loadSettingsForm called");
   const s = loadSettings();
 
   // 業務区分マスター
