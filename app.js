@@ -92,20 +92,18 @@ function loadSettings() {
     breakWarn:     1,
   };
   try {
-    let stored = JSON.parse(localStorage.getItem(\'dash_settings\') || \'{}\');
+  let stored = JSON.parse(localStorage.getItem('dash_settings') || '{}');
 
     // 設定のバージョン管理とマイグレーション
     if (stored.version !== SETTINGS_VERSION) {
       console.log(`Settings migration: from ${stored.version || 'old'} to ${SETTINGS_VERSION}`);
       // 古い設定を破棄し、最新のデフォルト設定を適用（パスワードは保持）
       const currentPassword = localStorage.getItem('dash_password'); // 現在のパスワードを一時的に保持
-      stored = {}; 
+      stored = {};
       localStorage.removeItem('dash_settings'); // 古い設定を完全に削除
-      if (currentPassword) {
-        localStorage.setItem('dash_password', currentPassword); // 保持したパスワードを復元
+    if (currentPassword) { localStorage.setItem(\'dash_password\', currentPassword); } // 保持したパスワードを復元
       }
     }
-
     // ネストされたオブジェクトはマージ
     const merged = Object.assign({}, def, stored);
     merged.scoreConfig  = Object.assign({}, DEFAULT_SCORE_CONFIG,  stored.scoreConfig  || {});
@@ -244,8 +242,7 @@ function handleCSVFiles(files) {
         saveStoredData();
         renderAll();
         document.getElementById('csv-file-input').value = '';
-      }
-    };
+      };
     reader.readAsText(file, 'UTF-8');
   });
 }
@@ -719,7 +716,6 @@ function renderWorktypeChart() {
         legend: { position:'right', labels:{ color:'#c0c8e0', font:{size:12}, boxWidth:14, padding:8 } },
         tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}h (${Math.round(ctx.parsed/total*100)}%)` } }
       }
-    }
   });
 
   // 合計表示
@@ -784,8 +780,6 @@ function renderPersonalBarChart() {
             }
           }
         }
-      }
-    }
   });
 }
 
@@ -1080,7 +1074,6 @@ function renderSummaryBubbleChart(scores) {
         legend: { display:false },
         tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: スコア${ctx.raw.x} Lv.${ctx.raw.y}` } }
       }
-    }
   });
 }
 
@@ -1438,7 +1431,6 @@ function renderPcScoreBar(bd, cfg, totalScore) {
         datalabels: { display: false },
         tooltip: { callbacks: { label: ctx => ` ${ctx.raw}点` } }
       }
-    }
   });
 }
 
@@ -1522,7 +1514,6 @@ function renderPcWorktypePie(st) {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}h (${Math.round(ctx.raw/totalH*100)}%)` } }
       }
-    }
   });
 }
 
@@ -1613,7 +1604,6 @@ function renderPcDailyChart(empId, recs, dates) {
         legend: { labels:{ color:'#c0c8e0', font:{size:11}, boxWidth:12 } },
         tooltip: { mode:'index', intersect:false }
       }
-    }
   });
 }
 
@@ -1755,8 +1745,6 @@ function renderPcBubbleChart(st) {
             }
           }
         }
-      }
-    }
   });
 
   // 4象限ラベルをcanvas上に直接描画
