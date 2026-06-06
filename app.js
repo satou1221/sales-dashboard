@@ -101,8 +101,7 @@ function loadSettings() {
       const currentPassword = localStorage.getItem('dash_password'); // 現在のパスワードを一時的に保持
       stored = {};
       localStorage.removeItem('dash_settings'); // 古い設定を完全に削除
-    if (currentPassword) { localStorage.setItem(\'dash_password\', currentPassword); } // 保持したパスワードを復元
-      }
+      if (currentPassword) { localStorage.setItem('dash_password', currentPassword); } // 保持したパスワードを復元
     }
     // ネストされたオブジェクトはマージ
     const merged = Object.assign({}, def, stored);
@@ -114,7 +113,7 @@ function loadSettings() {
     saveSettingsObj(merged); // マイグレーション後の設定を保存
     return merged;
   } catch (e) {
-    console.error(\'Error loading settings:\', e);
+    console.error('Error loading settings:', e);
     const newSettings = { ...def, version: SETTINGS_VERSION };
     saveSettingsObj(newSettings); // エラー時はデフォルト設定を保存
     return newSettings;
@@ -139,19 +138,19 @@ function getPassword() { return localStorage.getItem('dash_password') || DEFAULT
 function doLogin() {
   console.log("doLogin called");
   try {
-    const pw = document.getElementById(\'login-password\').value;
+    const pw = document.getElementById('login-password').value;
     if (pw === getPassword()) {
-      document.getElementById(\'login-screen\').style.display = \'none\';
-      document.getElementById(\'main-screen\').style.display  = \'flex\';
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('main-screen').style.display  = 'flex';
       loadSettingsForm();
       loadStoredData();
       renderAll();
     } else {
-      document.getElementById(\'login-error\').style.display = \'block\';
+      document.getElementById('login-error').style.display = 'block';
     }
   } catch (e) {
-    console.error(\'Login error:\', e);
-    alert(\'ログイン中にエラーが発生しました。コンソールを確認してください。\');
+    console.error('Login error:', e);
+    alert('ログイン中にエラーが発生しました。コンソールを確認してください。');
   }
 }
 document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
@@ -242,7 +241,8 @@ function handleCSVFiles(files) {
         saveStoredData();
         renderAll();
         document.getElementById('csv-file-input').value = '';
-      };
+      }
+    };
     reader.readAsText(file, 'UTF-8');
   });
 }
@@ -515,13 +515,13 @@ function buildRiskReason(empId) {
     if (bd.comp.c3Ot >= 1)             reasons.push(`残業90分超3日連続 ${bd.comp.c3Ot}回`);
     if (bd.comp.cB0Ot >= 1)            reasons.push(`休憩0分+残業90分超 ${bd.comp.cB0Ot}日`);
 
-    if (bd.ot.monthMin >= 30 * 60)     reasons.push(\'月間時間外30時間超\');
-    else if (bd.ot.monthMin >= 20 * 60) reasons.push(\'月間時間外20時間超\');
+    if (bd.ot.monthMin >= 30 * 60)     reasons.push('月間時間外30時間超');
+    else if (bd.ot.monthMin >= 20 * 60) reasons.push('月間時間外20時間超');
 
     if (reasons.length === 0 && bd.ot.d60 >= 2) reasons.push(`残業60〜89分が多い（${bd.ot.d60}日）`);
   }
 
-  return reasons.slice(0, 3).join(\'、\') || \'なし\';
+  return reasons.slice(0, 3).join('、') || 'なし';
 }
 
 // ============================================================
@@ -716,8 +716,8 @@ function renderWorktypeChart() {
         legend: { position:'right', labels:{ color:'#c0c8e0', font:{size:12}, boxWidth:14, padding:8 } },
         tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed}h (${Math.round(ctx.parsed/total*100)}%)` } }
       }
+    }
   });
-
   // 合計表示
   const el = document.getElementById('worktype-total');
   if (el) el.textContent = `合計：${fmtMin(allRecords.reduce((s,r)=>s+r.normalMin+r.otMin,0))}`;
@@ -777,12 +777,13 @@ function renderPersonalBarChart() {
             afterBody: (items) => {
               const idx = items[0].dataIndex;
               return [`合計: ${totals[idx]}h`];
-            }
+             }
           }
         }
+      }
+    }
   });
 }
-
 // ============================================================
 // 部門比較テーブル
 // ============================================================
@@ -1074,10 +1075,10 @@ function renderSummaryBubbleChart(scores) {
         legend: { display:false },
         tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: スコア${ctx.raw.x} Lv.${ctx.raw.y}` } }
       }
+    }
   });
 }
-
-function renderRiskLevelPieChart(scores) {
+function renderRiskLevelPieChartt(scores) {
   const canvas = document.getElementById('chart-risk-level-pie');
   if (!canvas) return;
   destroyChart('risk-level-pie');
@@ -1429,11 +1430,11 @@ function renderPcScoreBar(bd, cfg, totalScore) {
       plugins: {
         legend: { display: false },
         datalabels: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}点` } }
+         tooltip: { callbacks: { label: ctx => ` ${ctx.raw}点` } }
       }
+    }
   });
 }
-
 // ---- 主な負荷要因リスト ----
 function renderPcFactorList(bd, cfg) {
   const ul = document.getElementById('pc-factor-list');
@@ -1514,10 +1515,10 @@ function renderPcWorktypePie(st) {
         legend: { display: false },
         tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}h (${Math.round(ctx.raw/totalH*100)}%)` } }
       }
+    }
   });
 }
-
-// ---- 業務区分別テーブル ----
+// ---- 業務区分別テーブル -----
 function renderPcWorktypeTable(empId, st) {
   const tbody = document.getElementById('pc-worktype-tbody');
   const wm = loadSettings().workMaster;
@@ -1604,10 +1605,10 @@ function renderPcDailyChart(empId, recs, dates) {
         legend: { labels:{ color:'#c0c8e0', font:{size:11}, boxWidth:12 } },
         tooltip: { mode:'index', intersect:false }
       }
+    }
   });
 }
-
-// ---- 異常日一覧 ----
+// ---- 異常日一覧 -----
 function renderPcAnomalyTable(empId, recs) {
   const tbody = document.getElementById('pc-anomaly-tbody');
   const dayMap = {};
@@ -1745,9 +1746,10 @@ function renderPcBubbleChart(st) {
             }
           }
         }
+      }
+    }
   });
-
-  // 4象限ラベルをcanvas上に直接描画
+  // 4象限ラベルをcanvas上に直接描画画
   const chart = chartInstances['pc-bubble'];
   if (chart) {
     const origDraw = chart.draw.bind(chart);
