@@ -6,6 +6,8 @@
   <title>営業部 業務時間ダッシュボード</title>
   <link rel="stylesheet" href="style.css?v=4.7.5">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="db.js" type="module"></script>
+  <script src="app.js" type="module"></script>
 </head>
 <body>
 
@@ -79,8 +81,13 @@
     <header class="main-header">
       <div class="header-left">
         <h2 id="page-title">ダッシュボード</h2>
-        <div class="version-info">v4.7.6 (2026/06/04)</div>
-        <span class="header-period" id="header-period">データ未読込</span>
+        <div class="version-info">v4.8.0 (2026/06/07)</div>
+        <div class="period-selector-wrapper">
+          <div class="period-label">集約期間:</div>
+          <select id="period-start" class="form-select-sm"></select>
+          <span>〜</span>
+          <select id="period-end" class="form-select-sm"></select>
+        </div>
       </div>
       <div class="header-right">
         <span class="header-update" id="header-update"></span>
@@ -600,18 +607,39 @@
           <p>CSVファイルをここにドロップ、または</p>
           <label class="btn-upload">
             ファイルを選択
-            <input type="file" id="csv-file-input" accept=".csv" multiple style="display:none" onchange="handleCSVFiles(this.files)">
+            <input type="file" id="csv-file-input" accept=".csv" multiple style="display:none">
           </label>
           <p class="csv-hint">複数ファイルを同時に選択できます（部員全員分）</p>
         </div>
         <div id="csv-status" class="csv-status"></div>
       </div>
+
       <div class="chart-card full-width" style="margin-top:16px">
         <div class="chart-header">
-          <h3>取込済みデータ</h3>
-          <button class="btn-danger-sm" onclick="clearAllData()">🗑️ 全データ削除</button>
+          <h3>📁 保存済みデータ一覧</h3>
+          <div class="header-actions">
+            <button class="btn-outline-sm" id="export-data-btn">📥 エクスポート</button>
+            <button class="btn-outline-sm" id="import-data-btn">📤 インポート</button>
+            <input type="file" id="import-file-input" accept=".json" style="display:none">
+            <button class="btn-danger-sm" id="clear-all-btn">🗑️ 全データ削除</button>
+          </div>
         </div>
-        <div id="csv-data-summary" class="csv-data-summary"></div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>対象月</th>
+                <th>件数</th>
+                <th>人数</th>
+                <th>取込日時</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="stored-data-list">
+              <!-- JSで動的に生成 -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 

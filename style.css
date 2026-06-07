@@ -63,7 +63,12 @@ body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Go
 
 /* ヘッダー */
 .main-header { display:flex; align-items:center; justify-content:space-between; padding:14px 24px; background:var(--bg2); border-bottom:1px solid var(--border); flex-shrink:0; }
-.header-left h2 { font-size:1.1rem; font-weight:700; display: inline-block; vertical-align: middle; }
+.header-left { display: flex; align-items: center; gap: 24px; }
+.header-left h2 { font-size:1.1rem; font-weight:700; }
+.period-selector-wrapper { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.05); padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1); }
+.period-label { font-size: 12px; color: var(--text-sub); white-space: nowrap; }
+.form-select-sm { background: #1e293b; color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; padding: 2px 8px; font-size: 13px; cursor: pointer; }
+.form-select-sm:focus { outline: none; border-color: var(--accent); }
 .header-period { font-size:0.8rem; color:var(--text-sub); margin-left:10px; }
 .header-right { display:flex; align-items:center; gap:16px; }
 .header-update { font-size:0.78rem; color:var(--text-sub); }
@@ -175,6 +180,15 @@ body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Go
 .btn-upload { background:var(--accent); color:#fff; border:none; border-radius:8px; padding:10px 24px; cursor:pointer; font-size:0.9rem; font-weight:600; display:inline-block; }
 .csv-hint { font-size:0.78rem; color:var(--text-sub); margin-top:8px; }
 .csv-status { margin-top:16px; font-size:0.85rem; }
+.header-actions { display: flex; gap: 8px; }
+.btn-outline-sm { background: transparent; border: 1px solid rgba(255, 255, 255, 0.2); color: #fff; padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+.btn-outline-sm:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.4); }
+.data-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+.data-table th { color: var(--text-sub); font-weight: 500; font-size: 13px; }
+.data-table td { font-size: 14px; }
+.btn-danger-sm { background: rgba(231, 76, 60, 0.1); border: 1px solid rgba(231, 76, 60, 0.2); color: var(--red); padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+.btn-danger-sm:hover { background: rgba(231, 76, 60, 0.2); }
 .csv-status .success { color:var(--green); }
 .csv-status .error { color:var(--red); }
 .csv-data-summary { font-size:0.85rem; }
