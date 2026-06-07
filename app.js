@@ -206,8 +206,23 @@ async function handleCSVFiles(files) {
       const firstDate = records[0].date;
       const ym = firstDate.substring(0, 7);
 
-      await db.saveMonthlyData(ym, records);
-      allRecords[ym] = records;
+      // 既存データとのマージ処理
+      let mergedRecords = records;
+      if (allRecords[ym]) {
+        const existingRecords = allRecords[ym];
+        // 氏名と日付をキーにして既存データをマップ化
+        const recordMap = new Map();
+        existingRecords.forEach(r => recordMap.set(`${r.name}_${r.date}`, r));
+        
+        // 新しいデータで上書きまたは追加
+        records.forEach(r => recordMap.set(`${r.name}_${r.date}`, r));
+        
+        // マップから配列に戻す
+        mergedRecords = Array.from(recordMap.values());
+      }
+
+      await db.saveMonthlyData(ym, mergedRecords);
+      allRecords[ym] = mergedRecords;
       successCount++;
     } catch (e) {
       console.error(e);
