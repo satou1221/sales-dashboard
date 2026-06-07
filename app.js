@@ -73,51 +73,75 @@ const DEFAULT_FORCE_CONFIG = {
   compBreak0Ot90Lv: 3, // 休憩0分かつ残業90分以上同日 → Lv.3以上
   compVacOtLv:  3, // 休暇中業務かつ時間外同日 → Lv.3以上
 };
-let allRecords = [];
+let allRecords = {}; // 月別データを保持するオブジェクトに変更
 let chartInstances = {};
 
 // ============================================================
 // 設定（LocalStorage）
 // ============================================================
 function loadSettings() {
-  const def = {
-    workMaster:   DEFAULT_WORK_MASTER,
-    scoreConfig:  DEFAULT_SCORE_CONFIG,
-    levelConfig:  DEFAULT_LEVEL_CONFIG,
-    forceConfig:  DEFAULT_FORCE_CONFIG,
-    // 後方互換
-    otAlert:      45,
+  const defaultSettings = {
+    workMaster:    DEFAULT_WORK_MASTER,
+    scoreConfig:   DEFAULT_SCORE_CONFIG,
+    levelConfig:   DEFAULT_LEVEL_CONFIG,
+    forceConfig:   DEFAULT_FORCE_CONFIG,
+    otAlert:       45,
     vacationAlert: 10,
-    breakOk:      40,
+    breakOk:       40,
     breakWarn:     1,
+    version:       SETTINGS_VERSION,
   };
-  try {
-  let stored = JSON.parse(localStorage.getItem('dash_settings') || '{}');
 
-    // 設定のバージョン管理とマイグレーション
-    if (stored.version !== SETTINGS_VERSION) {
-      console.log(`Settings migration: from ${stored.version || 'old'} to ${SETTINGS_VERSION}`);
-      // 古い設定を破棄し、最新のデフォルト設定を適用（パスワードは保持）
-      const currentPassword = localStorage.getItem('dash_password'); // 現在のパスワードを一時的に保持
-      stored = {};
-      localStorage.removeItem('dash_settings'); // 古い設定を完全に削除
-      if (currentPassword) { localStorage.setItem('dash_password', currentPassword); } // 保持したパスワードを復元
+  let storedSettings = {};
+  try {
+    const storedJson = localStorage.getItem('dash_settings');
+    if (storedJson) {
+      storedSettings = JSON.parse(storedJson);
     }
-    // ネストされたオブジェクトはマージ
-    const merged = Object.assign({}, def, stored);
-    merged.scoreConfig  = Object.assign({}, DEFAULT_SCORE_CONFIG,  stored.scoreConfig  || {});
-    merged.levelConfig  = Object.assign({}, DEFAULT_LEVEL_CONFIG,  stored.levelConfig  || {});
-    merged.forceConfig  = Object.assign({}, DEFAULT_FORCE_CONFIG,  stored.forceConfig  || {});
-    if (!merged.workMaster || merged.workMaster.length === 0) merged.workMaster = DEFAULT_WORK_MASTER;
-    merged.version = SETTINGS_VERSION; // 最新バージョンを保存
-    saveSettingsObj(merged); // マイグレーション後の設定を保存
-    return merged;
   } catch (e) {
-    console.error('Error loading settings:', e);
-    const newSettings = { ...def, version: SETTINGS_VERSION };
-    saveSettingsObj(newSettings); // エラー時はデフォルト設定を保存
-    return newSettings;
+    console.error('Error parsing stored settings from localStorage:', e);
+    // パースエラーが発生した場合は、古い設定を破棄してデフォルトを使用
+    localStorage.removeItem('dash_settings');
   }
+
+  // 設定のバージョン管理とマイグレーション
+  if (storedSettings.version !== SETTINGS_VERSION) {
+    console.log(`Settings migration: from ${storedSettings.version || 'old'} to ${SETTINGS_VERSION}`);
+    const currentPassword = localStorage.getItem('dash_password');
+    localStorage.removeItem('dash_settings'); // 古い設定を完全に削除
+    storedSettings = {}; // storedSettingsをリセット
+    if (currentPassword) {
+      localStorage.setItem('dash_password', currentPassword);
+    }
+  }
+
+  // デフォルト設定と保存された設定をマージ
+  const mergedSettings = {
+    ...defaultSettings,
+    ...storedSettings,
+    scoreConfig: {
+      ...defaultSettings.scoreConfig,
+      ...(storedSettings.scoreConfig || {}),
+    },
+    levelConfig: {
+      ...defaultSettings.levelConfig,
+      ...(storedSettings.levelConfig || {}),
+    },
+    forceConfig: {
+      ...defaultSettings.forceConfig,
+      ...(storedSettings.forceConfig || {}),
+    },
+  };
+
+  // workMasterが空の場合はデフォルトを適用
+  if (!mergedSettings.workMaster || mergedSettings.workMaster.length === 0) {
+    mergedSettings.workMaster = DEFAULT_WORK_MASTER;
+  }
+
+  // 最新バージョンを保存
+  mergedSettings.version = SETTINGS_VERSION;
+  saveSettingsObj(mergedSettings);
+  return mergedSettings;
 }
 
 function saveSettingsObj(s) {
@@ -204,13 +228,13 @@ function switchTab(name) {
 // ============================================================
 function loadStoredData() {
   console.log("loadStoredData called");
-  try { allRecords = JSON.parse(localStorage.getItem('dash_records') || '[]'); } catch { allRecords = []; }
+  try { allRecords = JSON.parse(localStorage.getItem('dash_records') || '{}'); } catch { allRecords = {}; }
 }
 function saveStoredData() { localStorage.setItem('dash_records', JSON.stringify(allRecords)); }
 
 function clearAllData() {
   if (!confirm('取込済みの全データを削除しますか？')) return;
-  allRecords = [];
+  allRecords = {};
   saveStoredData();
   renderAll();
   showToast('全データを削除しました');
@@ -226,10 +250,20 @@ function handleCSVFiles(files) {
       try {
         const rows = parseCSV(e.target.result);
         if (rows.length > 0) {
-          const empId = rows[0].empId;
-          const ym    = rows[0].date.substring(0, 7);
-          allRecords  = allRecords.filter(r => !(r.empId === empId && r.date.startsWith(ym)));
-          allRecords  = allRecords.concat(rows);
+          // CSVデータを月別にグループ化
+          const monthlyRecords = {};
+          rows.forEach(record => {
+            const ym = record.date.substring(0, 7);
+            if (!monthlyRecords[ym]) {
+              monthlyRecords[ym] = [];
+            }
+            monthlyRecords[ym].push(record);
+          });
+
+          // allRecordsにマージ（同月は上書き、別月は保持）
+          for (const ym in monthlyRecords) {
+            allRecords[ym] = monthlyRecords[ym];
+          }
         }
         loaded++;
         statusEl.innerHTML += `<div class="success">✅ ${file.name}：${rows.length}件取込完了</div>`;
