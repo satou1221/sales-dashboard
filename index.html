@@ -647,7 +647,29 @@
     <div id="tab-settings" class="tab-content">
       <div style="display: flex; flex-direction: column; gap: 16px;">
 
-        <!-- 業務区分マスター -->
+            <!-- 業務区分マスター -->
+            <div class="chart-card full-width">
+              <div class="chart-header">
+                <h3>🚨 アラート閾値設定</h3>
+              </div>
+              <div class="chart-body">
+                <div class="settings-item">
+                  <label for="setting-ot-alert">時間外アラート (時間):</label>
+                  <input type="number" id="setting-ot-alert" value="1.5" step="0.1">
+                </div>
+                <div class="settings-item">
+                  <label for="setting-vacation-alert">休暇中業務アラート (時間):</label>
+                  <input type="number" id="setting-vacation-alert" value="0.1" step="0.1">
+                </div>
+                <div class="settings-item">
+                  <label for="setting-break-alert">休憩不足アラート (分):</label>
+                  <input type="number" id="setting-break-alert" value="45" step="1">
+                </div>
+                <button class="btn-primary" id="save-alert-settings-btn">アラート設定を保存</button>
+              </div>
+            </div>
+
+            <!-- 業務区分マスター -->
         <div class="chart-card full-width" id="settings-workmaster">
           <div class="chart-header">
             <h3>🛠️ 業務区分マスター設定</h3>
