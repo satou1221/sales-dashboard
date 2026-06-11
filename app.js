@@ -41,7 +41,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // 4. ログイン状態チェック
   checkLoginStatus();
+
+  // 5. ログインボタン初期化
+  initLogin();
 });
+
+// グローバル関数のエクスポート
+window.switchTab = switchTab;
+window.doLogout = doLogout;
 
 // ===== ログイン管理 =====
 function checkLoginStatus() {
@@ -64,25 +71,26 @@ function showMainScreen() {
   renderAll();
 }
 
-// ログインボタンのイベントリスナー設定
-const loginBtn = document.getElementById('login-button');
-if (loginBtn) {
-  loginBtn.addEventListener('click', () => {
-    const passwordInput = document.getElementById('login-password');
-    const password = passwordInput ? passwordInput.value : '';
-    const storedPassword = localStorage.getItem('dash_password') || 'admin1234';
-    
-    if (password === storedPassword) {
-      sessionStorage.setItem('isLoggedIn', 'true');
-      showMainScreen();
-    } else {
-      const errorEl = document.getElementById('login-error');
-      if (errorEl) {
-        errorEl.style.display = 'block';
-        setTimeout(() => { errorEl.style.display = 'none'; }, 3000);
+function initLogin() {
+  const loginBtn = document.getElementById('login-button');
+  if (loginBtn) {
+    loginBtn.addEventListener('click', () => {
+      const passwordInput = document.getElementById('login-password');
+      const password = passwordInput ? passwordInput.value : '';
+      const storedPassword = localStorage.getItem('dash_password') || 'admin1234';
+      
+      if (password === storedPassword) {
+        sessionStorage.setItem('isLoggedIn', 'true');
+        showMainScreen();
+      } else {
+        const errorEl = document.getElementById('login-error');
+        if (errorEl) {
+          errorEl.style.display = 'block';
+          setTimeout(() => { errorEl.style.display = 'none'; }, 3000);
+        }
       }
-    }
-  });
+    });
+  }
 }
 
 window.doLogout = () => {
