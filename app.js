@@ -72,26 +72,41 @@ function showMainScreen() {
 }
 
 function initLogin() {
+  console.log('initLogin called');
   const loginBtn = document.getElementById('login-button');
   if (loginBtn) {
-    loginBtn.addEventListener('click', () => {
+    console.log('Login button found, attaching listener');
+    loginBtn.onclick = () => {
+      console.log('Login button clicked');
       const passwordInput = document.getElementById('login-password');
       const password = passwordInput ? passwordInput.value : '';
       const storedPassword = localStorage.getItem('dash_password') || 'admin1234';
       
+      console.log('Attempting login with password:', password);
       if (password === storedPassword) {
+        console.log('Login successful');
         sessionStorage.setItem('isLoggedIn', 'true');
         showMainScreen();
       } else {
+        console.log('Login failed: incorrect password');
         const errorEl = document.getElementById('login-error');
         if (errorEl) {
           errorEl.style.display = 'block';
           setTimeout(() => { errorEl.style.display = 'none'; }, 3000);
         }
       }
-    });
+    };
+  } else {
+    console.error('Login button not found in DOM');
   }
 }
+
+// インラインonclick用にも公開
+window.handleLogin = () => {
+  initLogin();
+  const loginBtn = document.getElementById('login-button');
+  if (loginBtn) loginBtn.click();
+};
 
 window.doLogout = () => {
   sessionStorage.removeItem('isLoggedIn');
