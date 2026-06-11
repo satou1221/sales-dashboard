@@ -1,5 +1,7 @@
 import db from './db.js';
 
+console.log('app.js module loading...');
+
 /**
  * 営業部 業務時間ダッシュボード - Core Logic (v4.8.0)
  */
@@ -49,6 +51,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 // グローバル関数のエクスポート
 window.switchTab = switchTab;
 window.doLogout = doLogout;
+window.handleLogin = handleLogin;
+window.initLogin = initLogin;
+
+console.log('Global functions exported to window');
 
 // ===== ログイン管理 =====
 function checkLoginStatus() {
@@ -76,7 +82,8 @@ function initLogin() {
   const loginBtn = document.getElementById('login-button');
   if (loginBtn) {
     console.log('Login button found, attaching listener');
-    loginBtn.onclick = () => {
+    loginBtn.onclick = (e) => {
+      if (e) e.preventDefault();
       console.log('Login button clicked');
       const passwordInput = document.getElementById('login-password');
       const password = passwordInput ? passwordInput.value : '';
@@ -101,12 +108,23 @@ function initLogin() {
   }
 }
 
-// インラインonclick用にも公開
-window.handleLogin = () => {
-  initLogin();
-  const loginBtn = document.getElementById('login-button');
-  if (loginBtn) loginBtn.click();
-};
+function handleLogin() {
+  console.log('handleLogin called from inline onclick');
+  const passwordInput = document.getElementById('login-password');
+  const password = passwordInput ? passwordInput.value : '';
+  const storedPassword = localStorage.getItem('dash_password') || 'admin1234';
+  
+  if (password === storedPassword) {
+    sessionStorage.setItem('isLoggedIn', 'true');
+    showMainScreen();
+  } else {
+    const errorEl = document.getElementById('login-error');
+    if (errorEl) {
+      errorEl.style.display = 'block';
+      setTimeout(() => { errorEl.style.display = 'none'; }, 3000);
+    }
+  }
+}
 
 window.doLogout = () => {
   sessionStorage.removeItem('isLoggedIn');
