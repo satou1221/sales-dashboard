@@ -34,14 +34,18 @@ let personalTrendChart = null;
 
 // ===== 初期化処理 =====
 window.addEventListener('load', async () => {
-  console.log('App initializing...');
-    console.log('Initial allRecords:', allRecords);
+  console.log("App initializing...");
+    console.log("App init: window.db before init call:", window.db);
+    console.log("Initial allRecords (before IndexedDB load attempt):", allRecords);
   loadSettings();
   try {
     if (window.db) {
       await window.db.init();
-      allRecords = await window.db.getAllData();
-      console.log('allRecords after getAllData:', allRecords);
+      console.log("App init: window.db after init call:", window.db);
+      const loadedData = await window.db.getAllData();
+      allRecords = loadedData;
+      console.log("App init: Data loaded from IndexedDB (loadedData):", loadedData);
+      console.log("allRecords after getAllData (final value in init):", allRecords);
     }
   } catch (e) {
     console.error('Failed to load data:', e);
