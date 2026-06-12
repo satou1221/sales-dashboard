@@ -35,11 +35,13 @@ let personalTrendChart = null;
 // ===== 初期化処理 =====
 window.addEventListener('load', async () => {
   console.log('App initializing...');
+    console.log('Initial allRecords:', allRecords);
   loadSettings();
   try {
     if (window.db) {
       await window.db.init();
       allRecords = await window.db.getAllData();
+      console.log('allRecords after getAllData:', allRecords);
     }
   } catch (e) {
     console.error('Failed to load data:', e);
@@ -234,6 +236,7 @@ async function handleCSVFiles(files) {
     } catch (e) { console.error(e); }
   }
   if (statusEl) statusEl.innerHTML = `<p class="success">${successCount}件成功</p>`;
+  console.log('allRecords after CSV handle:', allRecords);
   initPeriodSelector();
   renderAll();
 }
