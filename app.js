@@ -30,6 +30,7 @@ window.addEventListener('load', async () => {
   // 2. データの読み込み (IndexedDB)
   try {
     if (window.db) {
+      await window.db.init(); // 明示的に初期化を待つ
       allRecords = await window.db.getAllData();
       console.log('Data loaded from IndexedDB:', Object.keys(allRecords));
     }
@@ -316,7 +317,7 @@ function renderAll() {
 }
 
 async function renderCSVTab() {
-  const body = document.getElementById('saved-data-list');
+  const body = document.getElementById('stored-data-list');
   if (!body) return;
 
   try {
