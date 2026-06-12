@@ -311,8 +311,57 @@ function renderAll() {
     case 'personal': renderPersonalAnalysis(data); break;
     case 'daily': renderDailyAnalysis(data); break;
     case 'alert': renderAlerts(data); break;
+    case 'csv': renderCSVTab(); break;
   }
 }
+
+async function renderCSVTab() {
+  const body = document.getElementById('saved-data-list');
+  if (!body) return;
+
+  try {
+    if (!window.db) return;
+    const metadata = await window.db.getAllMetadata();
+    
+    if (metadata.length === 0) {
+      body.innerHTML = '<tr><td colspan="5" style="text-align:center;">保存済みのデータはありません</td></tr>';
+      return;
+    }
+
+    // 日付順にソート
+    metadata.sort((a, b) => b.ym.localeCompare(a.ym));
+
+    body.innerHTML = metadata.map(m => `
+      <tr>
+        <td>${m.ym}</td>
+        <td>${m.count}件</td>
+        <td>${m.userCount}名</td>
+        <td>${new Date(m.updatedAt).toLocaleString()}</td>
+        <td>
+          <button class="btn-icon" onclick="deleteData('${m.ym}')" title="削除">🗑️</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    console.error('Failed to render CSV tab:', e);
+    body.innerHTML = '<tr><td colspan="5">データの読み込みに失敗しました</td></tr>';
+  }
+}
+
+async function deleteData(ym) {
+  if (confirm(`${ym} のデータを削除しますか？`)) {
+    try {
+      await window.db.deleteMonthlyData(ym);
+      delete allRecords[ym];
+      initPeriodSelector();
+      renderAll();
+    } catch (e) {
+      alert('削除に失敗しました');
+    }
+  }
+}
+
+window.deleteData = deleteData;
 
 function getAggregatedData() {
   const selectedMonths = Object.keys(allRecords)
