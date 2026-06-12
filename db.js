@@ -121,5 +121,5 @@ class DashboardDB {
   }
 }
 
-const db = new DashboardDB();
-export default db;
+// グローバル変数として公開
+window.db = new DashboardDB();
