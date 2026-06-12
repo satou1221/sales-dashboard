@@ -123,3 +123,4 @@ class DashboardDB {
 
 // グローバル変数として公開
 window.db = new DashboardDB();
+console.log("window.db assigned:", window.db);
