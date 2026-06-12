@@ -6,27 +6,38 @@
   <title>営業部 業務時間ダッシュボード</title>
   <link rel="stylesheet" href="style.css?v=4.7.5">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+    // 緊急用ログイン関数（スクリプト読み込み前に定義）
+    window.handleLogin = function() {
+      console.log('Emergency handleLogin called');
+      var pwInput = document.getElementById('login-password');
+      var pw = pwInput ? pwInput.value : '';
+      var stored = localStorage.getItem('dash_password') || 'admin1234';
+      
+      if (pw === stored) {
+        console.log('Login success (emergency)');
+        sessionStorage.setItem('isLoggedIn', 'true');
+        // メイン画面を表示
+        var loginScreen = document.getElementById('login-screen');
+        var mainScreen = document.getElementById('main-screen');
+        if (loginScreen) loginScreen.style.display = 'none';
+        if (mainScreen) mainScreen.style.display = 'flex';
+        // app.jsが読み込まれていれば初期描画
+        if (typeof renderAll === 'function') renderAll();
+      } else {
+        console.log('Login failed (emergency)');
+        var errorEl = document.getElementById('login-error');
+        if (errorEl) {
+          errorEl.style.display = 'block';
+          setTimeout(function() { errorEl.style.display = 'none'; }, 3000);
+        } else {
+          alert('パスワードが違います');
+        }
+      }
+    };
+  </script>
   <script src="db.js"></script>
   <script src="app.js"></script>
-  <script>
-    // 強制的な初期化チェック
-    window.addEventListener('load', function() {
-      console.log('Inline load check');
-      if (typeof handleLogin !== 'function') {
-        console.error('handleLogin is not defined! Emergency fallback.');
-        window.handleLogin = function() {
-          var pw = document.getElementById('login-password').value;
-          var stored = localStorage.getItem('dash_password') || 'admin1234';
-          if (pw === stored) {
-            sessionStorage.setItem('isLoggedIn', 'true');
-            location.reload();
-          } else {
-            alert('パスワードが違います');
-          }
-        };
-      }
-    });
-  </script>
 </head>
 <body>
 
