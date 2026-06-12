@@ -102,6 +102,28 @@ window.handleLogin = handleLogin;
 window.doLogout = doLogout;
 window.switchTab = switchTab;
 
+// 個人別分析タブのHTMLから呼び出されるハンドラ
+function renderPersonalTab() {
+  const data = getAggregatedData();
+  renderPersonalAnalysis(data);
+}
+window.renderPersonalTab = renderPersonalTab;
+
+// 個人詳細のHTMLから呼び出されるハンドラ
+function renderPersonalDetailFromSelect() {
+  const data = getAggregatedData();
+  const sel = document.getElementById('personal-member-filter');
+  if (sel) renderPersonalDetail(data, sel.value);
+}
+window.renderPersonalDetail = renderPersonalDetailFromSelect;
+
+// 時間外一覧フィルターのハンドラ
+function renderOtList() {
+  const data = getAggregatedData();
+  renderDashboard(data);
+}
+window.renderOtList = renderOtList;
+
 // ===== 設定管理 =====
 function loadSettings() {
   const stored = localStorage.getItem("dash_settings");
@@ -410,9 +432,9 @@ let summaryBubbleChart = null;
 let riskLevelPieChart = null;
 
 function renderSummary(data) {
-  const avgScoreEl = document.getElementById("summary-avg-score");
-  const avgRiskEl = document.getElementById("summary-avg-risk");
-  const alertUsersEl = document.getElementById("summary-alert-users");
+  const avgScoreEl = document.getElementById("sum-avg-contribution");
+  const avgRiskEl = document.getElementById("sum-avg-risk");
+  const alertUsersEl = document.getElementById("sum-alert-count");
 
   if (!data || data.records.length === 0) {
     if (avgScoreEl) avgScoreEl.textContent = "--";
