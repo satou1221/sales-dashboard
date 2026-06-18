@@ -40,8 +40,26 @@
       }
     };
   </script>
-  <script src="db.js?v=debug"></script>
-  <script src="app.js?v=debug"></script>
+  <script src="db_v480.js?v=480"></script>
+  <script src="app_v480.js?v=480"></script>
+  <script>
+    // Service Workerの強制解除
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(let registration of registrations) {
+          registration.unregister();
+          console.log('ServiceWorker unregistered');
+        }
+      });
+    }
+    // キャッシュの全削除
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        for (let name of names) caches.delete(name);
+        console.log('Caches cleared');
+      });
+    }
+  </script>
 </head>
 <body>
 
