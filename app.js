@@ -420,7 +420,7 @@ function renderSummary(data) {
   const userRisks = {};
   for (const n in userStats) {
     const s = userStats[n];
-    const risk = (s.ot * 0.5 + s.vw * 2.0); // 休暇中業務の重みを増やす
+    const risk = (s.ot * 1.0 + s.vw * 3.0); // 休暇中業務の重みをさらに増やし、時間外も1.0に修正
     totalRisk += risk;
     userRisks[n] = { name: n, x: s.score / s.count, y: risk };
   }
@@ -447,8 +447,8 @@ function renderSummaryCharts(userRisks, userStats) {
     if (riskLevelPieChart) riskLevelPieChart.destroy();
     const lv = { "低": 0, "中": 0, "高": 0 };
     for (const n in userStats) {
-      const r = (userStats[n].ot * 0.5 + userStats[n].vw * 2.0);
-      if (r > 5.0) lv["高"]++; else if (r > 2.0) lv["中"]++; else lv["低"]++;
+      const r = (userStats[n].ot * 1.0 + userStats[n].vw * 3.0);
+      if (r > 10.0) lv["高"]++; else if (r > 5.0) lv["中"]++; else lv["低"]++;
     }
     riskLevelPieChart = new Chart(ctxP, {
       type: 'pie',
@@ -529,11 +529,11 @@ function updateScoreAlertPanel(data) {
 
   for (const n in userStats) {
     const s = userStats[n];
-    const risk = (s.ot * 0.5 + s.vw * 2.0);
+    const risk = (s.ot * 1.0 + s.vw * 3.0);
     let level = 1;
-    if (risk > 5.0) { level = 4; lv.lv4++; }
-    else if (risk > 2.0) { level = 3; lv.lv3++; }
-    else if (risk > 1.0) { level = 2; lv.lv2++; }
+    if (risk > 10.0) { level = 4; lv.lv4++; }
+    else if (risk > 5.0) { level = 3; lv.lv3++; }
+    else if (risk > 2.0) { level = 2; lv.lv2++; }
     
     memberRisks.push({ name: n, score: risk, level });
   }
