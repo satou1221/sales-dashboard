@@ -1,3 +1,6 @@
+
+
+console.log("db.js: Script start - v3");
 /**
  * 業務時間ダッシュボード用 IndexedDB ユーティリティ
  */
@@ -34,6 +37,7 @@ class DashboardDB {
   async saveMonthlyData(ym, records, metadata = {}) {
     if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
+
       const transaction = this.db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
       
@@ -48,7 +52,10 @@ class DashboardDB {
 
       const request = store.put(data);
       request.onsuccess = () => resolve();
-      request.onerror = () => reject('Save error');
+      request.onerror = (event) => {
+        console.error("db.js: saveMonthlyData - Save error for ym:", ym, event.target.error);
+        reject('Save error');
+      };
     });
   }
 
@@ -71,9 +78,13 @@ class DashboardDB {
       const request = store.getAll();
       request.onsuccess = () => {
         const result = {};
+        console.log("db.js: getAllData - request.result before processing:", request.result);
+
         request.result.forEach(item => {
           result[item.ym] = item.records;
         });
+
+        console.log("db.js: getAllData - result before resolving:", result);
         resolve(result);
       };
       request.onerror = () => reject('GetAll error');
@@ -101,6 +112,7 @@ class DashboardDB {
   async deleteMonthlyData(ym) {
     if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
+
       const transaction = this.db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
       const request = store.delete(ym);
@@ -112,6 +124,7 @@ class DashboardDB {
   async clearAll() {
     if (!this.db) await this.init();
     return new Promise((resolve, reject) => {
+
       const transaction = this.db.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
       const request = store.clear();
@@ -123,4 +136,5 @@ class DashboardDB {
 
 // グローバル変数として公開
 window.db = new DashboardDB();
-console.log("window.db assigned:", window.db);
+
+

@@ -1,8 +1,34 @@
+console.log("app.js: Script start - v3");
+function updateDebug(msg) {
+  const el = document.getElementById('debug-console');
+  if (el) {
+    const time = new Date().toLocaleTimeString();
+    el.innerHTML += `<br>[${time}] ${msg}`;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const debugDiv = document.createElement('div');
+  debugDiv.style.position = 'fixed';
+  debugDiv.style.top = '0';
+  debugDiv.style.left = '0';
+  debugDiv.style.background = 'rgba(0,0,0,0.8)';
+  debugDiv.style.color = 'white';
+  debugDiv.style.zIndex = '9999';
+  debugDiv.style.padding = '10px';
+  debugDiv.style.fontSize = '12px';
+  debugDiv.style.maxHeight = '200px';
+  debugDiv.style.overflowY = 'auto';
+  debugDiv.id = 'debug-console';
+  debugDiv.innerHTML = '<b>Debug Console</b>';
+  document.body.appendChild(debugDiv);
+  updateDebug('App JS Loaded & DOM Ready');
+});
 /**
  * 営業部 業務時間ダッシュボード - Core Logic (v4.8.0)
  */
 
-console.log('app.js loading...');
+console.log('app.js: Script start');
 
 // ===== 定数・グローバル変数 =====
 const SETTINGS_VERSION = '4.8.0';
@@ -34,26 +60,67 @@ let personalTrendChart = null;
 
 // ===== 初期化処理 =====
 window.addEventListener('load', async () => {
-  console.log("App initializing...");
-    console.log("App init: window.db before init call:", window.db);
-    console.log("Initial allRecords (before IndexedDB load attempt):", allRecords);
+  updateDebug("App initializing...");
   loadSettings();
   try {
     if (window.db) {
+      updateDebug("Initializing IndexedDB...");
       await window.db.init();
-      console.log("App init: window.db after init call:", window.db);
+      updateDebug("IndexedDB initialized.");
+      
+      updateDebug("Loading data from IndexedDB...");
       const loadedData = await window.db.getAllData();
-      allRecords = loadedData;
-      console.log("App init: Data loaded from IndexedDB (loadedData):", loadedData);
-      console.log("allRecords after getAllData (final value in init):", allRecords);
+      allRecords = loadedData || {};
+      const keys = Object.keys(allRecords);
+      updateDebug(`Data loaded. Months: ${keys.length} (${keys.join(', ') || 'none'})`);
+    } else {
+      updateDebug("ERROR: window.db is not defined!");
     }
   } catch (e) {
-    console.error('Failed to load data:', e);
+    updateDebug(`ERROR: ${e.message || e}`);
   }
+  
+  updateDebug("Initializing period selector...");
   initPeriodSelector();
+  
+  updateDebug("Initializing event listeners...");
   initEventListeners();
+  
+  updateDebug("Checking login status...");
   checkLoginStatus();
-});
+  
+	  updateDebug("App initialization complete.");
+	  updateVersionDisplay();
+	});
+
+function updateVersionDisplay() {
+  const verEl = document.getElementById('app-version-display');
+  if (verEl) verEl.textContent = `v${SETTINGS_VERSION}`;
+  
+  // ヘッダーのバージョン表示も更新
+  const headerVerEl = document.querySelector('.version-info');
+  if (headerVerEl) headerVerEl.textContent = `v${SETTINGS_VERSION} (2026/06/17)`;
+}
+
+window.forceUpdateApp = function() {
+  if (confirm('アプリを強制更新しますか？\nキャッシュをクリアして最新版を読み込み直します。')) {
+    // Service Workerのキャッシュ削除を試行
+    if ('serviceWorker' in navigator) {
+      caches.keys().then(names => {
+        for (let name of names) caches.delete(name);
+      });
+    }
+    
+    // クエリパラメータにタイムスタンプを付与してリロード（キャッシュ回避）
+    const url = new URL(window.location.href);
+    url.searchParams.set('v', Date.now());
+    window.location.href = url.toString();
+  }
+};
+
+window.showUpdateNotes = function() {
+  alert(`最新の更新内容 (v${SETTINGS_VERSION}):\n・時間休・有給の休暇中業務判定ロジックを改善\n・ダッシュボードの集計不具合を修正\n・強制更新機能を追加`);
+};
 
 function checkLoginStatus() {
   const isLoggedIn = sessionStorage.getItem('isLoggedIn');
@@ -259,6 +326,10 @@ function parseCSV(text) {
       if (!isNaN(val) && val !== '') val = Number(val);
       r[h] = val;
     });
+    // 業務区分による判定
+    const workType = r['業務区分'] || r['type'] || '';
+    const isVacation = workType.includes('有給') || workType.includes('時間休') || workType.includes('休暇');
+
     const norm = {
       date: r['日付'] || r['date'],
       name: r['氏名'] || r['name'],
@@ -266,9 +337,15 @@ function parseCSV(text) {
       totalTime: r['総業務時間'] || r['total_time'] || 0,
       otTime: r['時間外時間'] || r['ot_time'] || 0,
       breakTime: r['休憩時間'] || r['break_time'] || 0,
-      vacationWork: r['休暇中業務'] || r['vacation_work'] || 0,
+      vacationWork: r['休暇中業務'] || r['vacation_work'] || (isVacation ? (r['総業務時間'] || r['total_time'] || 0) : 0),
       contribution: r['貢献スコア'] || r['contribution'] || 0
     };
+
+    // もし時間外として記録されているが、休暇中である場合は休暇中に振り替える
+    if (isVacation && norm.otTime > 0) {
+      norm.vacationWork += norm.otTime;
+      norm.otTime = 0;
+    }
     if (norm.date && norm.name) records.push(norm);
   }
   return records;
@@ -276,11 +353,15 @@ function parseCSV(text) {
 
 // ===== 描画コア =====
 function renderAll() {
+
   const activeTab = document.querySelector('.nav-item.active')?.dataset.tab;
   const data = getAggregatedData();
   updateHeader(data);
   if (activeTab === 'summary') renderSummary(data);
-  else if (activeTab === 'dashboard') renderDashboard(data);
+  else if (activeTab === 'dashboard') {
+    renderDashboard(data);
+    renderDepartmentalAnalysis(data);
+  }
   else if (activeTab === 'dept') renderDepartmentalAnalysis(data);
   else if (activeTab === 'personal') renderPersonalAnalysis(data);
   else if (activeTab === 'daily') renderDailyAnalysis(data);
@@ -289,7 +370,9 @@ function renderAll() {
 }
 
 function getAggregatedData() {
+
   const months = Object.keys(allRecords).filter(m => m >= currentPeriod.start && m <= currentPeriod.end);
+
   let records = [];
   months.forEach(m => records = records.concat(allRecords[m]));
   if (records.length === 0) return { records: [], totalTime: 0, otTime: 0, vacationWork: 0, totalBusinessDays: 0, uniqueUserCount: 0, avgContributionPerUser: 0, avgBreakTimePerDayPerUser: 0 };
@@ -306,8 +389,8 @@ function getAggregatedData() {
     records, totalTime, otTime, vacationWork,
     totalBusinessDays: dates.size,
     uniqueUserCount: users.size,
-    avgContributionPerUser: totalScore / users.size,
-    avgBreakTimePerDayPerUser: (users.size > 0 && dates.size > 0) ? (totalBreak / users.size / dates.size) : 0
+    avgContributionPerUser: totalScore / records.length,
+    avgBreakTimePerDayPerUser: (records.length > 0) ? (totalBreak / records.length) : 0 // すでに分単位で入っている想定
   };
 }
 
@@ -337,7 +420,7 @@ function renderSummary(data) {
   const userRisks = {};
   for (const n in userStats) {
     const s = userStats[n];
-    const risk = (s.ot * 0.5 + s.vw * 0.3);
+    const risk = (s.ot * 0.5 + s.vw * 2.0); // 休暇中業務の重みを増やす
     totalRisk += risk;
     userRisks[n] = { name: n, x: s.score / s.count, y: risk };
   }
@@ -364,8 +447,8 @@ function renderSummaryCharts(userRisks, userStats) {
     if (riskLevelPieChart) riskLevelPieChart.destroy();
     const lv = { "低": 0, "中": 0, "高": 0 };
     for (const n in userStats) {
-      const r = (userStats[n].ot * 0.5 + userStats[n].vw * 0.3);
-      if (r > 2.0) lv["高"]++; else if (r > 1.0) lv["中"]++; else lv["低"]++;
+      const r = (userStats[n].ot * 0.5 + userStats[n].vw * 2.0);
+      if (r > 5.0) lv["高"]++; else if (r > 2.0) lv["中"]++; else lv["低"]++;
     }
     riskLevelPieChart = new Chart(ctxP, {
       type: 'pie',
@@ -381,13 +464,98 @@ function renderDashboard(data) {
   document.getElementById("kpi-total").textContent = `${data.totalTime.toFixed(1)}h`;
   document.getElementById("kpi-ot").textContent = `${data.otTime.toFixed(1)}h`;
   document.getElementById("kpi-vacation").textContent = `${data.vacationWork.toFixed(1)}h`;
-  document.getElementById("kpi-break-avg").textContent = `${(data.avgBreakTimePerDayPerUser * 60).toFixed(0)}分`;
+  document.getElementById("kpi-break-avg").textContent = `${data.avgBreakTimePerDayPerUser.toFixed(0)}分`;
   document.getElementById("kpi-avg").textContent = `${data.avgContributionPerUser.toFixed(1)}点`;
   
   const alerts = calculateAlerts(data.records, currentSettings);
   document.getElementById("kpi-alert-count").textContent = `${new Set(alerts.map(a => a.name)).size}名`;
 
+  // 業務負荷スコアアラートパネルの更新
+  updateScoreAlertPanel(data);
+
+  // 時間外・休暇中業務一覧の更新
+  updateOTVacationList(data);
+
   renderDashboardCharts(data);
+}
+
+function updateOTVacationList(data) {
+  const body = document.getElementById("ot-vacation-body");
+  if (!body) return;
+
+  const filter = document.getElementById("ot-list-filter")?.value || "all";
+  const filtered = data.records.filter(r => {
+    if (r.otTime === 0 && r.vacationWork === 0) return false;
+    if (filter !== "all" && r.name !== filter) return false;
+    return true;
+  }).sort((a, b) => b.date.localeCompare(a.date));
+
+  body.innerHTML = filtered.length ? filtered.map(r => `
+    <tr>
+      <td>${r.name}</td>
+      <td>${r.date}</td>
+      <td>${r.otTime > 0 && r.vacationWork > 0 ? '時間外/休暇中' : r.otTime > 0 ? '時間外' : '休暇中'}</td>
+      <td>${r.otTime.toFixed(1)}h</td>
+      <td>${r.vacationWork.toFixed(1)}h</td>
+      <td>-</td>
+    </tr>
+  `).join("") : '<tr><td colspan="6" style="text-align:center">対象データなし</td></tr>';
+
+  // フィルタの選択肢を更新
+  const filterEl = document.getElementById("ot-list-filter");
+  if (filterEl && filterEl.options.length <= 1) {
+    const names = Array.from(new Set(data.records.filter(r => r.otTime > 0 || r.vacationWork > 0).map(r => r.name))).sort();
+    names.forEach(n => {
+      const opt = document.createElement("option");
+      opt.value = n;
+      opt.textContent = n;
+      filterEl.appendChild(opt);
+    });
+  }
+}
+
+function updateScoreAlertPanel(data) {
+  const userStats = {};
+  data.records.forEach(r => {
+    if (!userStats[r.name]) userStats[r.name] = { ot: 0, vw: 0, score: 0, count: 0 };
+    userStats[r.name].ot += r.otTime;
+    userStats[r.name].vw += r.vacationWork;
+    userStats[r.name].score += r.contribution;
+    userStats[r.name].count++;
+  });
+
+  const lv = { lv4: 0, lv3: 0, lv2: 0 };
+  const memberRisks = [];
+
+  for (const n in userStats) {
+    const s = userStats[n];
+    const risk = (s.ot * 0.5 + s.vw * 2.0);
+    let level = 1;
+    if (risk > 5.0) { level = 4; lv.lv4++; }
+    else if (risk > 2.0) { level = 3; lv.lv3++; }
+    else if (risk > 1.0) { level = 2; lv.lv2++; }
+    
+    memberRisks.push({ name: n, score: risk, level });
+  }
+
+  if (document.getElementById("sa-lv4-count")) document.getElementById("sa-lv4-count").textContent = lv.lv4;
+  if (document.getElementById("sa-lv3-count")) document.getElementById("sa-lv3-count").textContent = lv.lv3;
+  if (document.getElementById("sa-lv2-count")) document.getElementById("sa-lv2-count").textContent = lv.lv2;
+  if (document.getElementById("sa-break-avg")) document.getElementById("sa-break-avg").textContent = `${data.avgBreakTimePerDayPerUser.toFixed(0)}分`;
+
+  // ハイリスクメンバー TOP5
+  const top5 = memberRisks.sort((a, b) => b.score - a.score).slice(0, 5);
+  const top5Body = document.getElementById("sa-top-list");
+  if (top5Body) {
+    top5Body.innerHTML = top5.map((m, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${m.name}</td>
+        <td>${m.score.toFixed(1)}</td>
+        <td>${m.level >= 4 ? '重点確認' : m.level >= 3 ? '要確認' : '注意'}</td>
+      </tr>
+    `).join("");
+  }
 }
 
 function renderDashboardCharts(data) {
