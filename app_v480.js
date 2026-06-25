@@ -7,6 +7,7 @@ function updateDebug(msg) {
   }
 }
 
+/* 
 window.addEventListener('DOMContentLoaded', () => {
   const debugDiv = document.createElement('div');
   debugDiv.style.position = 'fixed';
@@ -24,6 +25,7 @@ window.addEventListener('DOMContentLoaded', () => {
   document.body.appendChild(debugDiv);
   updateDebug('App JS Loaded & DOM Ready');
 });
+*/
 /**
  * 営業部 業務時間ダッシュボード - Core Logic (v4.8.0)
  */
@@ -330,16 +332,28 @@ function parseCSV(text) {
     const workType = r['業務区分'] || r['type'] || '';
     const isVacation = workType.includes('有給') || workType.includes('時間休') || workType.includes('休暇');
 
+    // 数値項目が「分」単位である場合の処理
+    const getMinutes = (key) => {
+      let val = r[key] || r[`${key}(分)`] || 0;
+      return typeof val === 'number' ? val : 0;
+    };
+
     const norm = {
       date: r['日付'] || r['date'],
       name: r['氏名'] || r['name'],
       dept: r['部門'] || r['dept'] || '未設定',
-      totalTime: r['総業務時間'] || r['total_time'] || 0,
-      otTime: r['時間外時間'] || r['ot_time'] || 0,
-      breakTime: r['休憩時間'] || r['break_time'] || 0,
-      vacationWork: r['休暇中業務'] || r['vacation_work'] || (isVacation ? (r['総業務時間'] || r['total_time'] || 0) : 0),
+      totalTime: (getMinutes('通常') + getMinutes('時間外') + getMinutes('休暇中業務') + getMinutes('懇親会')) / 60,
+      otTime: getMinutes('時間外') / 60,
+      breakTime: getMinutes('休憩') / 60,
+      vacationWork: getMinutes('休暇中業務') / 60,
       contribution: r['貢献スコア'] || r['contribution'] || 0
     };
+
+    // もし既存のヘッダー名（総業務時間など）がある場合はそれを優先
+    if (r['総業務時間'] || r['total_time']) norm.totalTime = r['総業務時間'] || r['total_time'];
+    if (r['時間外時間'] || r['ot_time']) norm.otTime = r['時間外時間'] || r['ot_time'];
+    if (r['休憩時間'] || r['break_time']) norm.breakTime = r['休憩時間'] || r['break_time'];
+    if (r['休暇中業務'] || r['vacation_work']) norm.vacationWork = r['休暇中業務'] || r['vacation_work'];
 
     // もし時間外として記録されているが、休暇中である場合は休暇中に振り替える
     if (isVacation && norm.otTime > 0) {
